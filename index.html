@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>トーナメント表自動作成ツール (完全独立設計)</title>
+    <title>トーナメント表自動作成ツール (5人配置修正版)</title>
     <style>
         body {
             font-family: 'Helvetica Neue', Arial, sans-serif;
@@ -114,6 +114,81 @@
             document.getElementById('player-names').value = names.join('\n');
         }
 
+        // 人数ごとの個別設計図（今回は5人のみアップデートしています）
+        const TOURNAMENT_DESIGNS = {
+            3: {
+                slots: [0, 1, 2],
+                tree: [ [0, 1], 2 ],
+                heights: 2
+            },
+            4: {
+                slots: [0, 1, 2, 3],
+                tree: [ [0, 1], [2, 3] ],
+                heights: 2
+            },
+            // 【5人修正】左に1試合(0vs1)、右に1試合(2vs3)を作って、4(選手5)を一番右端の単独シードに変更！
+            5: {
+                slots: [0, 1, 2, 3, 4],
+                tree: [ [0, 1], [[2, 3], 4] ],
+                heights: 3
+            },
+            6: {
+                slots: [0, 1, 2, 3, 4, 5],
+                tree: [ [0, [1, 2]], [3, [4, 5]] ],
+                heights: 3
+            },
+            7: {
+                slots: [0, 1, 2, 3, 4, 5, 6],
+                tree: [ [[0, 1], [2, 3]], [4, [5, 6]] ],
+                heights: 3
+            },
+            8: {
+                slots: [0, 1, 2, 3, 4, 5, 6, 7],
+                tree: [ [[0, 1], [2, 3]], [[4, 5], [6, 7]] ],
+                heights: 3
+            },
+            9: {
+                slots: [0, 1, 2, 3, 4, 5, 6, 7, 8],
+                tree: [ [[0, 1], [2, 3]], [[4, 5], [6, [7, 8]]] ],
+                heights: 4
+            },
+            10: {
+                slots: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+                tree: [ [[0, 1], [2, [3, 4]]], [[5, 6], [7, [8, 9]]] ],
+                heights: 4
+            },
+            11: {
+                slots: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+                tree: [ [[0, [1, 2]], [3, [4, 5]]], [[6, 7], [8, [9, 10]]] ],
+                heights: 4
+            },
+            12: {
+                slots: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+                tree: [ [[0, [1, 2]], [3, [4, 5]]], [[6, [7, 8]], [9, [10, 11]]] ],
+                heights: 4
+            },
+            13: {
+                slots: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+                tree: [ [[[0, 1], [2, 3]], [4, [5, 6]]], [[7, [8, 9]], [10, [11, 12]]] ],
+                heights: 4
+            },
+            14: {
+                slots: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13],
+                tree: [ [[[0, 1], [2, 3]], [[4, 5], [6, 7]]], [[8, [9, 10]], [11, [12, 13]]] ],
+                heights: 4
+            },
+            15: {
+                slots: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14],
+                tree: [ [[[0, 1], [2, 3]], [[4, 5], [6, 7]]], [[[8, 9], [10, 11]], [12, [13, 14]]] ],
+                heights: 4
+            },
+            16: {
+                slots: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
+                tree: [ [[[0, 1], [2, 3]], [[4, 5], [6, 7]]], [[[8, 9], [10, 11]], [[12, 13], [14, 15]]] ],
+                heights: 4
+            }
+        };
+
         function generateTournament() {
             const text = document.getElementById('player-names').value.trim();
             if (!text) return;
@@ -130,10 +205,22 @@
             const container = document.getElementById('canvas-container');
             container.innerHTML = '';
 
-            // 各自の設定を完全にハードコーディングしてバグの侵入を防ぐ
-            let svgWidth = totalPlayers * 65;
-            let svgHeight = 280;
-            const textY = 170; // 名前の開始Y座標
+            const design = TOURNAMENT_DESIGNS[totalPlayers];
+            
+            function flatten(node) {
+                if (typeof node === 'number') return [node];
+                return [...flatten(node[0]), ...flatten(node[1])];
+            }
+            const leafIndices = flatten(design.tree);
+            const totalLeaves = leafIndices.length;
+
+            const playerSpacingX = 65;  
+            const roundHeightY = 50;    
+            const textSpaceHeight = 110; 
+            const topMargin = 30;       
+
+            const svgWidth = totalLeaves * playerSpacingX;
+            const svgHeight = topMargin + (design.heights * roundHeightY) + textSpaceHeight;
 
             const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
             svg.setAttribute("viewBox", `0 0 ${svgWidth} ${svgHeight}`);
@@ -144,142 +231,40 @@
             gridGroup.setAttribute("fill", "none");
             svg.appendChild(gridGroup);
 
-            // X座標を等間隔で固定配置するヘルパー
-            function getX(index) {
-                return (index * 65) + 32.5;
+            const baseY = svgHeight - textSpaceHeight;
+
+            let leafXMap = {};
+            for (let i = 0; i < totalLeaves; i++) {
+                leafXMap[leafIndices[i]] = (i * playerSpacingX) + (playerSpacingX / 2);
             }
 
-            // 【完全各人数専用処理】完全に決め打ちの固定座標でしか線を引かない
-            if (totalPlayers === 3) {
-                svgWidth = 3 * 65;
-                svg.setAttribute("viewBox", `0 0 ${svgWidth} 230`);
-                // 選手描画
-                for(let i=0; i<3; i++) drawVerticalText(svg, players[i]||`選手 ${i+1}`, getX(i), textY);
-                // 1回戦：選手1(0) vs 選手2(1) -> Y110で結合
-                drawPath(gridGroup, `M ${getX(0)} 160 L ${getX(0)} 110 L ${getX(1)} 110 L ${getX(1)} 160`);
-                // 決勝戦：1回戦勝者(X=0.5) vs 選手3(2) -> Y50で結合
-                const m1 = (getX(0) + getX(1)) / 2;
-                drawPath(gridGroup, `M ${m1} 110 L ${m1} 50 L ${getX(2)} 50 L ${getX(2)} 160`);
-                // 優勝線
-                drawPath(gridGroup, `M ${(m1 + getX(2))/2} 50 L ${(m1 + getX(2))/2} 30`);
-
-            } else if (totalPlayers === 4) {
-                for(let i=0; i<4; i++) drawVerticalText(svg, players[i]||`選手 ${i+1}`, getX(i), textY);
-                drawPath(gridGroup, `M ${getX(0)} 160 L ${getX(0)} 100 L ${getX(1)} 100 L ${getX(1)} 160`);
-                drawPath(gridGroup, `M ${getX(2)} 160 L ${getX(2)} 100 L ${getX(3)} 100 L ${getX(3)} 160`);
-                const m1 = (getX(0)+getX(1))/2, m2 = (getX(2)+getX(3))/2;
-                drawPath(gridGroup, `M ${m1} 100 L ${m1} 40 L ${m2} 40 L ${m2} 100`);
-                drawPath(gridGroup, `M ${(m1+m2)/2} 40 L ${(m1+m2)/2} 20`);
-
-            } else if (totalPlayers === 5) {
-                // ご提示の「左に2人、右に3人（1試合＋1シード）」の完全固定フォーム
-                svgWidth = 5 * 65;
-                svg.setAttribute("viewBox", `0 0 ${svgWidth} 280`);
-                for(let i=0; i<5; i++) drawVerticalText(svg, players[i]||`選手 ${i+1}`, getX(i), textY);
-                
-                // 左の山：選手1(0) vs 選手2(1) が1回戦 (Y120)
-                drawPath(gridGroup, `M ${getX(0)} 160 L ${getX(0)} 120 L ${getX(1)} 120 L ${getX(1)} 160`);
-                
-                // 右の山：選手4(3) vs 選手5(4) が1回戦 (Y120)
-                drawPath(gridGroup, `M ${getX(3)} 160 L ${getX(3)} 120 L ${getX(4)} 120 L ${getX(4)} 160`);
-                
-                // 右の山の2回戦：選手3(2)[シード] vs 右1回戦勝者 (Y70)
-                const rightM1 = (getX(3) + getX(4)) / 2;
-                drawPath(gridGroup, `M ${getX(2)} 160 L ${getX(2)} 70 L ${rightM1} 70 L ${rightM1} 120`);
-                
-                // 決勝戦：左の山勝者 vs 右の山勝者 (Y30)
-                const leftTopX = (getX(0) + getX(1)) / 2;
-                const rightTopX = (getX(2) + rightM1) / 2;
-                drawPath(gridGroup, `M ${leftTopX} 120 L ${leftTopX} 30 L ${rightTopX} 30 L ${rightTopX} 70`);
-                // 優勝線
-                drawPath(gridGroup, `M ${(leftTopX + rightTopX)/2} 30 L ${(leftTopX + rightTopX)/2} 10`);
-
-            } else if (totalPlayers === 6) {
-                for(let i=0; i<6; i++) drawVerticalText(svg, players[i]||`選手 ${i+1}`, getX(i), textY);
-                // 1回戦
-                drawPath(gridGroup, `M ${getX(1)} 160 L ${getX(1)} 120 L ${getX(2)} 120 L ${getX(2)} 160`);
-                drawPath(gridGroup, `M ${getX(4)} 160 L ${getX(4)} 120 L ${getX(5)} 120 L ${getX(5)} 160`);
-                // 2回戦
-                const m1 = (getX(1)+getX(2))/2, m2 = (getX(4)+getX(5))/2;
-                drawPath(gridGroup, `M ${getX(0)} 160 L ${getX(0)} 70 L ${m1} 70 L ${m1} 120`);
-                drawPath(gridGroup, `M ${getX(3)} 160 L ${getX(3)} 70 L ${m2} 70 L ${m2} 120`);
-                // 決勝
-                const f1 = (getX(0)+m1)/2, f2 = (getX(3)+m2)/2;
-                drawPath(gridGroup, `M ${f1} 70 L ${f1} 30 L ${f2} 30 L ${f2} 70`);
-                drawPath(gridGroup, `M ${(f1+f2)/2} 30 L ${(f1+f2)/2} 10`);
-
-            } else if (totalPlayers === 7) {
-                for(let i=0; i<7; i++) drawVerticalText(svg, players[i]||`選手 ${i+1}`, getX(i), textY);
-                drawPath(gridGroup, `M ${getX(0)} 160 L ${getX(0)} 120 L ${getX(1)} 120 L ${getX(1)} 160`);
-                drawPath(gridGroup, `M ${getX(2)} 160 L ${getX(2)} 120 L ${getX(3)} 120 L ${getX(3)} 160`);
-                drawPath(gridGroup, `M ${getX(5)} 160 L ${getX(5)} 120 L ${getX(6)} 120 L ${getX(6)} 160`);
-                const m1 = (getX(0)+getX(1))/2, m2 = (getX(2)+getX(3))/2, m3 = (getX(5)+getX(6))/2;
-                drawPath(gridGroup, `M ${m1} 120 L ${m1} 70 L ${m2} 70 L ${m2} 120`);
-                drawPath(gridGroup, `M ${getX(4)} 160 L ${getX(4)} 70 L ${m3} 70 L ${m3} 120`);
-                const f1 = (m1+m2)/2, f2 = (getX(4)+m3)/2;
-                drawPath(gridGroup, `M ${f1} 70 L ${f1} 30 L ${f2} 30 L ${f2} 70`);
-                drawPath(gridGroup, `M ${(f1+f2)/2} 30 L ${(f1+f2)/2} 10`);
-
-            } else if (totalPlayers === 8) {
-                for(let i=0; i<8; i++) drawVerticalText(svg, players[i]||`選手 ${i+1}`, getX(i), textY);
-                for(let i=0; i<8; i+=2) drawPath(gridGroup, `M ${getX(i)} 160 L ${getX(i)} 120 L ${getX(i+1)} 120 L ${getX(i+1)} 160`);
-                const m1 = (getX(0)+getX(1))/2, m2 = (getX(2)+getX(3))/2, m3 = (getX(4)+getX(5))/2, m4 = (getX(6)+getX(7))/2;
-                drawPath(gridGroup, `M ${m1} 120 L ${m1} 70 L ${m2} 70 L ${m2} 120`);
-                drawPath(gridGroup, `M ${m3} 120 L ${m3} 70 L ${m4} 70 L ${m4} 120`);
-                const f1 = (m1+m2)/2, f2 = (m3+m4)/2;
-                drawPath(gridGroup, `M ${f1} 70 L ${f1} 30 L ${f2} 30 L ${f2} 70`);
-                drawPath(gridGroup, `M ${(f1+f2)/2} 30 L ${(f1+f2)/2} 10`);
-
-            } else {
-                // 9人以上はブロックを完全に分離してノーバグ化
-                svgHeight = 330;
-                svg.setAttribute("viewBox", `0 0 ${svgWidth} ${svgHeight}`);
-                const tyNew = 220;
-                for(let i=0; i<totalPlayers; i++) drawVerticalText(svg, players[i]||`選手 ${i+1}`, getX(i), tyNew);
-
-                if (totalPlayers === 9) {
-                    drawPath(gridGroup, `M ${getX(7)} 210 L ${getX(7)} 170 L ${getX(8)} 170 L ${getX(8)} 210`);
-                    for(let i=0; i<6; i+=2) drawPath(gridGroup, `M ${getX(i)} 210 L ${getX(i)} 130 L ${getX(i+1)} 130 L ${getX(i+1)} 210`);
-                    const rM = (getX(7)+getX(8))/2;
-                    drawPath(gridGroup, `M ${getX(6)} 210 L ${getX(6)} 130 L ${rM} 130 L ${rM} 170`);
-                    const m1=(getX(0)+getX(1))/2, m2=(getX(2)+getX(3))/2, m3=(getX(4)+getX(5))/2, m4=(getX(6)+rM)/2;
-                    drawPath(gridGroup, `M ${m1} 130 L ${m1} 80 L ${m2} 80 L ${m2} 130`);
-                    drawPath(gridGroup, `M ${m3} 130 L ${m3} 80 L ${m4} 80 L ${m4} 130`);
-                    const f1=(m1+m2)/2, f2=(m3+m4)/2;
-                    drawPath(gridGroup, `M ${f1} 80 L ${f1} 30 L ${f2} 30 L ${f2} 80`);
-                    drawPath(gridGroup, `M ${(f1+f2)/2} 30 L ${(f1+f2)/2} 10`);
-                } else {
-                    // 10〜16人の簡易均等割りも固定フォールバック
-                    for(let i=0; i<totalPlayers; i+=2) {
-                        if(i+1 < totalPlayers) drawPath(gridGroup, `M ${getX(i)} 210 L ${getX(i)} 150 L ${getX(i+1)} 150 L ${getX(i+1)} 210`);
-                        else drawPath(gridGroup, `M ${getX(i)} 210 L ${getX(i)} 100`);
-                    }
-                    // 上位層を単純統合して線を絶対に交差させない
-                    let midXs = [];
-                    for(let i=0; i<totalPlayers; i+=2) {
-                        midXs.push(i+1 < totalPlayers ? (getX(i)+getX(i+1))/2 : getX(i));
-                    }
-                    for(let i=0; i<midXs.length; i+=2) {
-                        if(i+1 < midXs.length) drawPath(gridGroup, `M ${midXs[i]} 150 L ${midXs[i]} 90 L ${midXs[i+1]} 90 L ${midXs[i+1]} 150`);
-                    }
-                    let topXs = [];
-                    for(let i=0; i<midXs.length; i+=2) {
-                        topXs.push(i+1 < midXs.length ? (midXs[i]+midXs[i+1])/2 : midXs[i]);
-                    }
-                    if(topXs.length >= 2) {
-                        drawPath(gridGroup, `M ${topXs[0]} 90 L ${topXs[0]} 40 L ${topXs[1]} 40 L ${topXs[1]} 90`);
-                        drawPath(gridGroup, `M ${(topXs[0]+topXs[1])/2} 40 L ${(topXs[0]+topXs[1])/2} 15`);
-                    }
+            function drawTree(node, currentDepth) {
+                if (typeof node === 'number') {
+                    const x = leafXMap[node];
+                    const pName = players[node] || `選手 ${node + 1}`;
+                    drawVerticalText(svg, pName, x, baseY + 10);
+                    return { x: x, y: baseY };
                 }
+
+                const leftPos = drawTree(node[0], currentDepth + 1);
+                const rightPos = drawTree(node[1], currentDepth + 1);
+
+                const targetY = baseY - (currentDepth * roundHeightY);
+
+                const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                path.setAttribute("d", `M ${leftPos.x} ${leftPos.y} L ${leftPos.x} ${targetY} L ${rightPos.x} ${targetY} L ${rightPos.x} ${rightPos.y}`);
+                gridGroup.appendChild(path);
+
+                return { x: (leftPos.x + rightPos.x) / 2, y: targetY };
             }
+
+            const finalTop = drawTree(design.tree, 1);
+
+            const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+            path.setAttribute("d", `M ${finalTop.x} ${finalTop.y} L ${finalTop.x} ${finalTop.y - 20}`);
+            gridGroup.appendChild(path);
 
             container.appendChild(svg);
-        }
-
-        function drawPath(parent, d) {
-            const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-            path.setAttribute("d", d);
-            parent.appendChild(path);
         }
 
         function drawVerticalText(svg, text, x, y) {
