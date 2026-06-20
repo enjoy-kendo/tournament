@@ -1,179 +1,277 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>トーナメント表自動作成ツール</title>
-    <style>
-        /* 全体レイアウト */
-        body {
-            font-family: 'Helvetica Neue', Arial, sans-serif;
-            background-color: #f0f4f8;
-            margin: 0;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
+/* --------------------
+   SVG描画
+-------------------- */
+
+function drawBracket(slots){
+
+    bracketContainer.innerHTML="";
+
+    const count = slots.length;
+    const rounds = Math.log2(count);
+
+    const playerGap = 90;
+    const roundGap = 90;
+
+    const bottomMargin = 140;
+    const topMargin = 60;
+
+    const width =
+        Math.max(
+            1000,
+            count * playerGap + 120
+        );
+
+    const height =
+        rounds * roundGap +
+        bottomMargin +
+        topMargin;
+
+    const svgNS =
+        "http://www.w3.org/2000/svg";
+
+    const svg =
+        document.createElementNS(
+            svgNS,
+            "svg"
+        );
+
+    svg.setAttribute("width",width);
+    svg.setAttribute("height",height);
+
+    bracketContainer.appendChild(svg);
+
+    const leafY =
+        height - bottomMargin;
+
+    let currentNodes=[];
+
+    /* --------------------
+       選手名描画
+    -------------------- */
+
+    for(let i=0;i<count;i++){
+
+        const x =
+            60 + i * playerGap;
+
+        const text =
+            document.createElementNS(
+                svgNS,
+                "text"
+            );
+
+        text.setAttribute("x",x);
+        text.setAttribute(
+            "y",
+            leafY + 25
+        );
+
+        text.setAttribute(
+            "font-size",
+            "16"
+        );
+
+        text.setAttribute(
+            "font-weight",
+            "bold"
+        );
+
+        text.setAttribute(
+            "text-anchor",
+            "middle"
+        );
+
+        text.style.writingMode =
+            "vertical-rl";
+
+        text.style.textOrientation =
+            "upright";
+
+        text.textContent =
+            slots[i];
+
+        svg.appendChild(text);
+
+        currentNodes.push({
+            x:x,
+            y:leafY
+        });
+
+    }
+
+    /* --------------------
+       ラウンド描画
+    -------------------- */
+
+    for(
+        let round=1;
+        round<=rounds;
+        round++
+    ){
+
+        const nextNodes=[];
+
+        const y =
+            leafY -
+            round*roundGap;
+
+        for(
+            let i=0;
+            i<currentNodes.length;
+            i+=2
+        ){
+
+            const left =
+                currentNodes[i];
+
+            const right =
+                currentNodes[i+1];
+
+            const centerX =
+                (
+                    left.x +
+                    right.x
+                ) / 2;
+
+            drawLine(
+                svg,
+                left.x,
+                left.y,
+                left.x,
+                y
+            );
+
+            drawLine(
+                svg,
+                right.x,
+                right.y,
+                right.x,
+                y
+            );
+
+            drawLine(
+                svg,
+                left.x,
+                y,
+                right.x,
+                y
+            );
+
+            nextNodes.push({
+                x:centerX,
+                y:y
+            });
+
         }
 
-        /* 入力フォームのコンテナ（印刷時は非表示） */
-        .control-panel {
-            background: white;
-            padding: 25px;
-            border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-            width: 100%;
-            max-width: 500px;
-            margin-bottom: 30px;
-            box-sizing: border-box;
-        }
+        currentNodes =
+            nextNodes;
 
-        .form-group {
-            margin-bottom: 15px;
-        }
+    }
 
-        label {
-            display: block;
-            font-weight: bold;
-            margin-bottom: 8px;
-            color: #333;
-        }
+    /* --------------------
+       優勝表示
+    -------------------- */
 
-        select, textarea {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            font-size: 14px;
-            box-sizing: border-box;
-        }
+    const champion =
+        currentNodes[0];
 
-        textarea {
-            height: 150px;
-            resize: vertical;
-        }
+    drawLine(
+        svg,
+        champion.x,
+        champion.y,
+        champion.x,
+        champion.y - 40
+    );
 
-        .btn-group {
-            display: flex;
-            gap: 10px;
-            margin-top: 15px;
-        }
+    const title =
+        document.createElementNS(
+            svgNS,
+            "text"
+        );
 
-        button {
-            flex: 1;
-            padding: 12px;
-            border: none;
-            border-radius: 4px;
-            font-size: 14px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: background 0.2s;
-        }
+    title.setAttribute(
+        "x",
+        champion.x
+    );
 
-        .btn-create {
-            background-color: #0f1e36;
-            color: white;
-        }
-        .btn-create:hover { background-color: #1d3557; }
+    title.setAttribute(
+        "y",
+        champion.y - 50
+    );
 
-        .btn-print {
-            background-color: #21ba45;
-            color: white;
-        }
-        .btn-print:hover { background-color: #1a9c35; }
+    title.setAttribute(
+        "font-size",
+        "20"
+    );
 
-        /* トーナメント表示エリア */
-        .tournament-wrapper {
-            background: white;
-            padding: 40px;
-            border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-            min-width: 600px;
-            display: flex;
-            justify-content: center;
-            overflow-x: auto;
-        }
+    title.setAttribute(
+        "font-weight",
+        "bold"
+    );
 
-        /* トーナメント表のCSS構造 */
-        .tournament-container {
-            display: flex;
-            flex-direction: column-reverse; /* 下から上へ描画（名前が一番下） */
-            align-items: center;
-        }
+    title.setAttribute(
+        "text-anchor",
+        "middle"
+    );
 
-        .round {
-            display: flex;
-            justify-content: space-around;
-            width: 100%;
-            margin-bottom: 20px;
-        }
+    title.textContent =
+        "優勝";
 
-        .match-pair {
-            display: flex;
-            justify-content: center;
-            position: relative;
-        }
+    svg.appendChild(title);
 
-        /* 線の描画ロジック */
-        .bracket-line {
-            position: relative;
-            border-top: 2px solid #333;
-            border-left: 2px solid #333;
-            border-right: 2px solid #333;
-            height: 30px;
-            box-sizing: border-box;
-        }
+}
 
-        /* シード（不戦勝）の時は、横線を消して中央の縦線だけにする */
-        .bracket-line.seed-line {
-            border-top: none;
-            border-right: none;
-            width: 2px !important; /* 1本の縦線にする */
-            margin: 0 auto;
-        }
 
-        /* 最上部の決勝戦の上の突起 */
-        .final-top-line {
-            width: 2px;
-            height: 20px;
-            background-color: #333;
-            margin: 0 auto;
-        }
+/* --------------------
+   線描画
+-------------------- */
 
-        /* 参加者名の縦書き配置 */
-        .player-list {
-            display: flex;
-            justify-content: space-between;
-            width: 100%;
-            padding-top: 10px;
-        }
+function drawLine(
+    svg,
+    x1,
+    y1,
+    x2,
+    y2
+){
 
-        .player-name {
-            writing-mode: vertical-rl;
-            text-combine-upright: digits 2;
-            font-size: 16px;
-            font-weight: bold;
-            letter-spacing: 2px;
-            text-align: center;
-            width: 30px;
-            white-space: nowrap;
-        }
+    const svgNS =
+        "http://www.w3.org/2000/svg";
 
-        /* 印刷用設定 */
-        @media print {
-            body { background: white; padding: 0; }
-            .control-panel { display: none; }
-            .tournament-wrapper { box-shadow: none; padding: 0; }
-        }
-    </style>
-</head>
-<body>
+    const line =
+        document.createElementNS(
+            svgNS,
+            "line"
+        );
 
-    <div class="control-panel">
-        <div class="form-group">
-            <label for="member-count">人数選択：</label>
-            <select id="member-count" onchange="updateTextArea()">
-                <option value="4">4人</option>
-                <option value="8" selected>8人</option>
-                <option value="16">16人</option>
-                <option value="32">32人</option>
+    line.setAttribute("x1",x1);
+    line.setAttribute("y1",y1);
+
+    line.setAttribute("x2",x2);
+    line.setAttribute("y2",y2);
+
+    line.setAttribute(
+        "stroke",
+        "#333"
+    );
+
+    line.setAttribute(
+        "stroke-width",
+        "2"
+    );
+
+    svg.appendChild(line);
+
+}
+
+
+/* --------------------
+   初期表示
+-------------------- */
+
+createBracket();
+
+</script>
+
+</body>
+</html>
