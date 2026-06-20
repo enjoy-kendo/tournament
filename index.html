@@ -3,9 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>トーナメント表自動作成ツール (完全修正版)</title>
+    <title>トーナメント表自動作成ツール (配置完全修正版)</title>
     <style>
-        /* 全体レイアウト */
         body {
             font-family: 'Helvetica Neue', Arial, sans-serif;
             background-color: #f0f4f8;
@@ -16,7 +15,6 @@
             align-items: center;
         }
 
-        /* 入力フォーム */
         .control-panel {
             background: white;
             padding: 20px;
@@ -28,76 +26,33 @@
             box-sizing: border-box;
         }
 
-        .form-group {
-            margin-bottom: 15px;
-        }
-
-        label {
-            display: block;
-            font-weight: bold;
-            margin-bottom: 8px;
-            color: #333;
-        }
-
+        .form-group { margin-bottom: 15px; }
+        label { display: block; font-weight: bold; margin-bottom: 8px; color: #333; }
         select, textarea {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            font-size: 14px;
-            box-sizing: border-box;
+            width: 100%; padding: 10px; border: 1px solid #ccc;
+            border-radius: 4px; font-size: 14px; box-sizing: border-box;
         }
+        textarea { height: 120px; resize: vertical; }
 
-        textarea {
-            height: 120px;
-            resize: vertical;
-        }
-
-        .btn-group {
-            display: flex;
-            gap: 10px;
-            margin-top: 15px;
-        }
-
-        button {
-            flex: 1;
-            padding: 12px;
-            border: none;
-            border-radius: 4px;
-            font-size: 14px;
-            font-weight: bold;
-            cursor: pointer;
-        }
-
+        .btn-group { display: flex; gap: 10px; margin-top: 15px; }
+        button { flex: 1; padding: 12px; border: none; border-radius: 4px; font-size: 14px; font-weight: bold; cursor: pointer; }
         .btn-create { background-color: #0f1e36; color: white; }
         .btn-print { background-color: #21ba45; color: white; }
 
-        /* トーナメント表示エリア（ここをスマホ対応に） */
         .tournament-wrapper {
             background: white;
             padding: 20px 10px;
             border-radius: 8px;
             box-shadow: 0 4px 6px rgba(0,0,0,0.05);
             width: 100%;
-            max-width: 600px; /* 画面が大きくてもこれ以上は広がらない */
+            max-width: 600px;
             box-sizing: border-box;
             text-align: center;
         }
 
-        #canvas-container {
-            width: 100%;
-            display: flex;
-            justify-content: center;
-        }
+        #canvas-container { width: 100%; display: flex; justify-content: center; }
+        svg { width: 100%; height: auto; max-width: 100%; }
 
-        /* SVGのレスポンシブ魔法：下から上スタイルでもスマホ幅に100%自動フィット */
-        svg {
-            width: 100%;
-            height: auto;
-            max-width: 100%;
-        }
-
-        /* 縦書きテキストスタイル */
         .player-text {
             writing-mode: vertical-rl;
             text-combine-upright: digits 2;
@@ -159,17 +114,26 @@
             document.getElementById('player-names').value = names.join('\n');
         }
 
-        function getBaseSize(p) {
-            if (p <= 4) return 4;
-            if (p <= 8) return 8;
-            return 16;
-        }
-
-        // ご提示いただいた5人の画像（左に1つ、右に2つの1回戦の山）を完全に再現する配置マップ
-        const SEED_PRIORITY_MAP = {
-            4:  [0, 3, 1, 2],
-            8:  [0, 3, 7, 4, 1, 2, 5, 6], // ここを修正：5人の時に[0,3,7]がシードになり、残る1回戦が画像通りの位置になります
-            16: [0, 7, 15, 8, 3, 4, 11, 12, 1, 6, 14, 9, 2, 5, 13, 10]
+        // --- 人数ごとに「完璧にバランスの取れた設計図」をハードコーディングで完全定義 ---
+        // 各人数ごとに、ベースサイズ（4,8,16）のスロットにおいて、
+        // 「どこに選手を配置し、どこを空き（シード用）にするか」の正しい配置パターン
+        const TOURNAMENT_DESIGNS = {
+            3:  { base: 4,  layout: ["P", null, "P", "P"] }, 
+            4:  { base: 4,  layout: ["P", "P", "P", "P"] },
+            // 5人: 左の山に1つ(P,P)、右の山に2つ(P,null)と(P,null) → ご提示の画像と全く同じ形に！
+            5:  { base: 8,  layout: ["P", "P", null, null, "P", null, "P", null] },
+            // 6人: 左の山に2人シードを散らし、中央に1回戦を2つ配置（完全な左右対称）
+            6:  { base: 8,  layout: ["P", null, "P", "P", "P", "P", "P", null] },
+            7:  { base: 8,  layout: ["P", "P", "P", "P", "P", "P", "P", null] },
+            8:  { base: 8,  layout: ["P", "P", "P", "P", "P", "P", "P", "P"] },
+            9:  { base: 16, layout: ["P", "P", null, null, null, null, null, null, "P", null, "P", null, "P", null, "P", null] },
+            10: { base: 16, layout: ["P", null, "P", null, "P", "P", "P", "P", "P", "P", "P", "P", "P", null, "P", null] },
+            11: { base: 16, layout: ["P", null, "P", null, "P", null, "P", "P", "P", "P", "P", "P", "P", "P", "P", null] },
+            12: { base: 16, layout: ["P", null, "P", null, "P", "P", "P", "P", "P", "P", "P", "P", "P", "P", "P", null] },
+            13: { base: 16, layout: ["P", null, "P", "P", "P", "P", "P", "P", "P", "P", "P", "P", "P", "P", "P", "P"] },
+            14: { base: 16, layout: ["P", "P", "P", "P", "P", "P", "P", "P", "P", "P", "P", "P", "P", "P", "P", "P"] },
+            15: { base: 16, layout: ["P", "P", "P", "P", "P", "P", "P", "P", "P", "P", "P", "P", "P", "P", "P", "P"] },
+            16: { base: 16, layout: ["P", "P", "P", "P", "P", "P", "P", "P", "P", "P", "P", "P", "P", "P", "P", "P"] }
         };
 
         function generateTournament() {
@@ -188,43 +152,30 @@
             const container = document.getElementById('canvas-container');
             container.innerHTML = '';
 
-            const baseSize = getBaseSize(totalPlayers);
-            const seedCount = baseSize - totalPlayers;
-            
-            let isSeedSlot = new Array(baseSize).fill(false);
-            const priorityList = SEED_PRIORITY_MAP[baseSize];
-            for (let i = 0; i < seedCount; i++) {
-                isSeedSlot[priorityList[i]] = true;
-            }
+            // 定義した設計図を読み込む
+            const design = TOURNAMENT_DESIGNS[totalPlayers];
+            const baseSize = design.base;
+            const layout = design.layout;
 
+            // 設計図の "P" の位置に、上から順番に選手の名前を割り当てる
             let slots = new Array(baseSize).fill(null);
             let playerIdx = 0;
-
-            // 1回戦のペアを配置
-            for (let i = 0; i < baseSize; i += 2) {
-                if (!isSeedSlot[i] && !isSeedSlot[i+1]) {
-                    slots[i] = players[playerIdx++];
-                    slots[i+1] = players[playerIdx++];
-                }
-            }
-            // シード枠に配置
             for (let i = 0; i < baseSize; i++) {
-                if (isSeedSlot[i] && playerIdx < totalPlayers) {
+                if (layout[i] === "P" && playerIdx < totalPlayers) {
                     slots[i] = players[playerIdx++];
                 }
             }
 
-            // --- 下から上スタイルの座標・サイズ設計 ---
-            const playerSpacingX = 65;  // 各プレイヤーの横幅
-            const roundHeightY = 45;    // 各回戦の縦の高さ
-            const textSpaceHeight = 110; // 最下部の名前スペース
-            const topMargin = 30;       // 最上部の余白
+            // --- 描画処理 (下から上スタイル・レスポンシブ) ---
+            const playerSpacingX = 65;  
+            const roundHeightY = 45;    
+            const textSpaceHeight = 110; 
+            const topMargin = 30;       
 
             const totalRounds = Math.log2(baseSize);
             const svgWidth = baseSize * playerSpacingX;
             const svgHeight = topMargin + (totalRounds * roundHeightY) + textSpaceHeight;
 
-            // viewBoxを使うことで、何人になってもスマホの画面幅に合わせて自動で縮小されます！
             const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
             svg.setAttribute("viewBox", `0 0 ${svgWidth} ${svgHeight}`);
 
@@ -237,12 +188,13 @@
             let currentNodes = [];
             const baseY = svgHeight - textSpaceHeight;
 
-            // 1回戦・シード初期線の描画
+            // 1回戦の描画
             for (let i = 0; i < baseSize; i += 2) {
                 const x1 = (i * playerSpacingX) + (playerSpacingX / 2);
                 const x2 = ((i + 1) * playerSpacingX) + (playerSpacingX / 2);
                 const midX = (x1 + x2) / 2;
 
+                // ケース1: 2人とも埋まっている（通常の1回戦）
                 if (slots[i] !== null && slots[i+1] !== null) {
                     drawVerticalText(svg, slots[i], x1, baseY + 10);
                     drawVerticalText(svg, slots[i+1], x2, baseY + 10);
@@ -254,6 +206,7 @@
 
                     currentNodes.push({ x: midX, y: nextY });
                 }
+                // ケース2: 片方だけ埋まっている（シード・不戦勝）
                 else if (slots[i] !== null || slots[i+1] !== null) {
                     const activeX = (slots[i] !== null) ? x1 : x2;
                     const name = (slots[i] !== null) ? slots[i] : slots[i+1];
@@ -271,7 +224,7 @@
                 }
             }
 
-            // 2回戦以降の描画（上へ進む）
+            // 2回戦以降の描画
             let currentY = baseY - roundHeightY;
 
             while (currentNodes.length > 1) {
@@ -304,7 +257,7 @@
                 currentY = nextY;
             }
 
-            // 決勝の上の最後の突起線
+            // 決勝の上の突起線
             if (currentNodes[0] !== null) {
                 const finalNode = currentNodes[0];
                 const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
