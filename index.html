@@ -150,91 +150,94 @@
             const baseY = svgHeight - textSpace;
             const getX = (index) => (index * spacingX) + (spacingX / 2);
 
+            // 1回戦の線の高さをbaseYからの相対デプスに変更（これで完全に潰れが解消します）
+            const r1Y = baseY - 40; 
+
             for (let i = 0; i < totalPlayers; i++) {
                 drawVerticalText(svg, players[i] || `選手 ${i + 1}`, getX(i), baseY + 10);
             }
 
-            // --- 全人数個別のレイアウト ---
+            // --- 全人数個別レイアウト（1回戦の縦棒の長さを均一化） ---
             
             if (totalPlayers === 3) {
-                drawPath(gridGroup, `M ${getX(0)} ${baseY} L ${getX(0)} 110 L ${getX(1)} 110 L ${getX(1)} ${baseY}`);
+                drawPath(gridGroup, `M ${getX(0)} ${baseY} L ${getX(0)} ${r1Y} L ${getX(1)} ${r1Y} L ${getX(1)} ${baseY}`);
                 const m1 = (getX(0) + getX(1)) / 2;
-                drawPath(gridGroup, `M ${m1} 110 L ${m1} 50 L ${getX(2)} 50 L ${getX(2)} ${baseY}`);
+                drawPath(gridGroup, `M ${m1} ${r1Y} L ${m1} 50 L ${getX(2)} 50 L ${getX(2)} ${baseY}`);
                 const topX = (m1 + getX(2)) / 2;
                 drawPath(gridGroup, `M ${topX} 50 L ${topX} 20`);
             }
             else if (totalPlayers === 4) {
-                drawPath(gridGroup, `M ${getX(0)} ${baseY} L ${getX(0)} 100 L ${getX(1)} 100 L ${getX(1)} ${baseY}`);
-                drawPath(gridGroup, `M ${getX(2)} ${baseY} L ${getX(2)} 100 L ${getX(3)} 100 L ${getX(3)} ${baseY}`);
+                drawPath(gridGroup, `M ${getX(0)} ${baseY} L ${getX(0)} ${r1Y} L ${getX(1)} ${r1Y} L ${getX(1)} ${baseY}`);
+                drawPath(gridGroup, `M ${getX(2)} ${baseY} L ${getX(2)} ${r1Y} L ${getX(3)} ${r1Y} L ${getX(3)} ${baseY}`);
                 const ml = (getX(0) + getX(1)) / 2, mr = (getX(2) + getX(3)) / 2;
-                drawPath(gridGroup, `M ${ml} 100 L ${ml} 40 L ${mr} 40 L ${mr} 100`);
+                drawPath(gridGroup, `M ${ml} ${r1Y} L ${ml} 40 L ${mr} 40 L ${mr} ${r1Y}`);
                 drawPath(gridGroup, `M ${(ml+mr)/2} 40 L ${(ml+mr)/2} 15`);
             }
             else if (totalPlayers === 5) {
-                drawPath(gridGroup, `M ${getX(0)} ${baseY} L ${getX(0)} 160 L ${getX(1)} 160 L ${getX(1)} ${baseY}`);
-                drawPath(gridGroup, `M ${getX(2)} ${baseY} L ${getX(2)} 160 L ${getX(3)} 160 L ${getX(3)} ${baseY}`);
+                drawPath(gridGroup, `M ${getX(0)} ${baseY} L ${getX(0)} ${r1Y} L ${getX(1)} ${r1Y} L ${getX(1)} ${baseY}`);
+                drawPath(gridGroup, `M ${getX(2)} ${baseY} L ${getX(2)} ${r1Y} L ${getX(3)} ${r1Y} L ${getX(3)} ${baseY}`);
                 const ml = (getX(0) + getX(1)) / 2, mr = (getX(2) + getX(3)) / 2;
-                drawPath(gridGroup, `M ${mr} 160 L ${mr} 100 L ${getX(4)} 100 L ${getX(4)} ${baseY}`);
+                drawPath(gridGroup, `M ${mr} ${r1Y} L ${mr} 100 L ${getX(4)} 100 L ${getX(4)} ${baseY}`);
                 const mr2 = (mr + getX(4)) / 2;
-                drawPath(gridGroup, `M ${ml} 160 L ${ml} 40 L ${mr2} 40 L ${mr2} 100`);
+                drawPath(gridGroup, `M ${ml} ${r1Y} L ${ml} 40 L ${mr2} 40 L ${mr2} 100`);
                 drawPath(gridGroup, `M ${(ml+mr2)/2} 40 L ${(ml+mr2)/2} 15`);
             }
             else if (totalPlayers === 6) {
-                drawPath(gridGroup, `M ${getX(1)} ${baseY} L ${getX(1)} 160 L ${getX(2)} 160 L ${getX(2)} ${baseY}`);
-                drawPath(gridGroup, `M ${getX(3)} ${baseY} L ${getX(3)} 160 L ${getX(4)} 160 L ${getX(4)} ${baseY}`);
+                drawPath(gridGroup, `M ${getX(1)} ${baseY} L ${getX(1)} ${r1Y} L ${getX(2)} ${r1Y} L ${getX(2)} ${baseY}`);
+                drawPath(gridGroup, `M ${getX(3)} ${baseY} L ${getX(3)} ${r1Y} L ${getX(4)} ${r1Y} L ${getX(4)} ${baseY}`);
                 const ml = (getX(1) + getX(2)) / 2, mr = (getX(3) + getX(4)) / 2;
-                drawPath(gridGroup, `M ${getX(0)} ${baseY} L ${getX(0)} 100 L ${ml} 100 L ${ml} 160`);
-                drawPath(gridGroup, `M ${mr} 160 L ${mr} 100 L ${getX(5)} 100 L ${getX(5)} ${baseY}`);
+                drawPath(gridGroup, `M ${getX(0)} ${baseY} L ${getX(0)} 100 L ${ml} 100 L ${ml} ${r1Y}`);
+                drawPath(gridGroup, `M ${mr} ${r1Y} L ${mr} 100 L ${getX(5)} 100 L ${getX(5)} ${baseY}`);
                 const tl = (getX(0) + ml) / 2, tr = (mr + getX(5)) / 2;
                 drawPath(gridGroup, `M ${tl} 100 L ${tl} 40 L ${tr} 40 L ${tr} 100`);
                 drawPath(gridGroup, `M ${(tl+tr)/2} 40 L ${(tl+tr)/2} 15`);
             }
             else if (totalPlayers === 7) {
-                drawPath(gridGroup, `M ${getX(0)} ${baseY} L ${getX(0)} 160 L ${getX(1)} 160 L ${getX(1)} ${baseY}`);
-                drawPath(gridGroup, `M ${getX(2)} ${baseY} L ${getX(2)} 160 L ${getX(3)} 160 L ${getX(3)} ${baseY}`);
-                drawPath(gridGroup, `M ${getX(4)} ${baseY} L ${getX(4)} 160 L ${getX(5)} 160 L ${getX(5)} ${baseY}`);
+                drawPath(gridGroup, `M ${getX(0)} ${baseY} L ${getX(0)} ${r1Y} L ${getX(1)} ${r1Y} L ${getX(1)} ${baseY}`);
+                drawPath(gridGroup, `M ${getX(2)} ${baseY} L ${getX(2)} ${r1Y} L ${getX(3)} ${r1Y} L ${getX(3)} ${baseY}`);
+                drawPath(gridGroup, `M ${getX(4)} ${baseY} L ${getX(4)} ${r1Y} L ${getX(5)} ${r1Y} L ${getX(5)} ${baseY}`);
                 const ml1 = (getX(0)+getX(1))/2, ml2 = (getX(2)+getX(3))/2, mr = (getX(4)+getX(5))/2;
-                drawPath(gridGroup, `M ${ml1} 160 L ${ml1} 100 L ${ml2} 100 L ${ml2} 160`);
-                drawPath(gridGroup, `M ${mr} 160 L ${mr} 100 L ${getX(6)} 100 L ${getX(6)} ${baseY}`);
+                drawPath(gridGroup, `M ${ml1} ${r1Y} L ${ml1} 100 L ${ml2} 100 L ${ml2} ${r1Y}`);
+                drawPath(gridGroup, `M ${mr} ${r1Y} L ${mr} 100 L ${getX(6)} 100 L ${getX(6)} ${baseY}`);
                 const tl = (ml1+ml2)/2, tr = (mr+getX(6))/2;
                 drawPath(gridGroup, `M ${tl} 100 L ${tl} 40 L ${tr} 40 L ${tr} 100`);
                 drawPath(gridGroup, `M ${(tl+tr)/2} 40 L ${(tl+tr)/2} 15`);
             }
             else if (totalPlayers === 8) {
                 for (let i = 0; i < 8; i += 2) {
-                    drawPath(gridGroup, `M ${getX(i)} ${baseY} L ${getX(i)} 160 L ${getX(i+1)} 160 L ${getX(i+1)} ${baseY}`);
+                    drawPath(gridGroup, `M ${getX(i)} ${baseY} L ${getX(i)} ${r1Y} L ${getX(i+1)} ${r1Y} L ${getX(i+1)} ${baseY}`);
                 }
                 const m1 = (getX(0)+getX(1))/2, m2 = (getX(2)+getX(3))/2, m3 = (getX(4)+getX(5))/2, m4 = (getX(6)+getX(7))/2;
-                drawPath(gridGroup, `M ${m1} 160 L ${m1} 100 L ${m2} 100 L ${m2} 160`);
-                drawPath(gridGroup, `M ${m3} 160 L ${m3} 100 L ${m4} 100 L ${m4} 160`);
+                drawPath(gridGroup, `M ${m1} ${r1Y} L ${m1} 100 L ${m2} 100 L ${m2} ${r1Y}`);
+                drawPath(gridGroup, `M ${m3} ${r1Y} L ${m3} 100 L ${m4} 100 L ${m4} ${r1Y}`);
                 const tl = (m1+m2)/2, tr = (m3+m4)/2;
                 drawPath(gridGroup, `M ${tl} 100 L ${tl} 40 L ${tr} 40 L ${tr} 100`);
                 drawPath(gridGroup, `M ${(tl+tr)/2} 40 L ${(tl+tr)/2} 15`);
             }
             else if (totalPlayers === 9) {
-                for (let i = 0; i < 8; i += 2) drawPath(gridGroup, `M ${getX(i)} ${baseY} L ${getX(i)} 220 L ${getX(i+1)} 220 L ${getX(i+1)} ${baseY}`);
+                for (let i = 0; i < 8; i += 2) drawPath(gridGroup, `M ${getX(i)} ${baseY} L ${getX(i)} ${r1Y} L ${getX(i+1)} ${r1Y} L ${getX(i+1)} ${baseY}`);
                 const m1=(getX(0)+getX(1))/2, m2=(getX(2)+getX(3))/2, m3=(getX(4)+getX(5))/2, m4=(getX(6)+getX(7))/2;
-                drawPath(gridGroup, `M ${m1} 220 L ${m1} 160 L ${m2} 160 L ${m2} 220`);
-                drawPath(gridGroup, `M ${m4} 220 L ${m4} 160 L ${getX(8)} 160 L ${getX(8)} ${baseY}`);
+                drawPath(gridGroup, `M ${m1} ${r1Y} L ${m1} 160 L ${m2} 160 L ${m2} ${r1Y}`);
+                drawPath(gridGroup, `M ${m4} ${r1Y} L ${m4} 160 L ${getX(8)} 160 L ${getX(8)} ${baseY}`);
                 const tl=(m1+m2)/2, tr2=(m4+getX(8))/2;
-                drawPath(gridGroup, `M ${m3} 220 L ${m3} 100 L ${tr2} 100 L ${tr2} 160`);
+                drawPath(gridGroup, `M ${m3} ${r1Y} L ${m3} 100 L ${tr2} 100 L ${tr2} 160`);
                 const tc = (m3+tr2)/2;
                 drawPath(gridGroup, `M ${tl} 160 L ${tl} 40 L ${tc} 40 L ${tc} 100`);
                 drawPath(gridGroup, `M ${(tl+tc)/2} 40 L ${(tl+tc)/2} 15`);
             }
             else if (totalPlayers === 10) {
-                drawPath(gridGroup, `M ${getX(1)} ${baseY} L ${getX(1)} 220 L ${getX(2)} 220 L ${getX(2)} ${baseY}`);
-                drawPath(gridGroup, `M ${getX(3)} ${baseY} L ${getX(3)} 220 L ${getX(4)} 220 L ${getX(4)} ${baseY}`);
+                drawPath(gridGroup, `M ${getX(1)} ${baseY} L ${getX(1)} ${r1Y} L ${getX(2)} ${r1Y} L ${getX(2)} ${baseY}`);
+                drawPath(gridGroup, `M ${getX(3)} ${baseY} L ${getX(3)} ${r1Y} L ${getX(4)} ${r1Y} L ${getX(4)} ${baseY}`);
                 const ml1 = (getX(1) + getX(2)) / 2, ml2 = (getX(3) + getX(4)) / 2;
-                drawPath(gridGroup, `M ${ml1} 220 L ${ml1} 160 L ${ml2} 160 L ${ml2} 220`);
+                drawPath(gridGroup, `M ${ml1} ${r1Y} L ${ml1} 160 L ${ml2} 160 L ${ml2} ${r1Y}`);
                 const tl_sub = (ml1 + ml2) / 2;
                 drawPath(gridGroup, `M ${getX(0)} ${baseY} L ${getX(0)} 100 L ${tl_sub} 100 L ${tl_sub} 160`);
                 const top_left = (getX(0) + tl_sub) / 2;
 
-                drawPath(gridGroup, `M ${getX(5)} ${baseY} L ${getX(5)} 220 L ${getX(6)} 220 L ${getX(6)} ${baseY}`);
-                drawPath(gridGroup, `M ${getX(7)} ${baseY} L ${getX(7)} 220 L ${getX(8)} 220 L ${getX(8)} ${baseY}`);
+                drawPath(gridGroup, `M ${getX(5)} ${baseY} L ${getX(5)} ${r1Y} L ${getX(6)} ${r1Y} L ${getX(6)} ${baseY}`);
+                drawPath(gridGroup, `M ${getX(7)} ${baseY} L ${getX(7)} ${r1Y} L ${getX(8)} ${r1Y} L ${getX(8)} ${baseY}`);
                 const mr1 = (getX(5) + getX(6)) / 2, mr2 = (getX(7) + getX(8)) / 2;
-                drawPath(gridGroup, `M ${mr1} 220 L ${mr1} 160 L ${mr2} 160 L ${mr2} 220`);
+                drawPath(gridGroup, `M ${mr1} ${r1Y} L ${mr1} 160 L ${mr2} 160 L ${mr2} ${r1Y}`);
                 const tr_sub = (mr1 + mr2) / 2;
                 drawPath(gridGroup, `M ${tr_sub} 160 L ${tr_sub} 100 L ${getX(9)} 100 L ${getX(9)} ${baseY}`);
                 const top_right = (tr_sub + getX(9)) / 2;
@@ -244,11 +247,11 @@
                 drawPath(gridGroup, `M ${final_center} 40 L ${final_center} 15`);
             }
             else if (totalPlayers === 11) {
-                for (let i = 0; i < 10; i += 2) drawPath(gridGroup, `M ${getX(i)} ${baseY} L ${getX(i)} 220 L ${getX(i+1)} 220 L ${getX(i+1)} ${baseY}`);
+                for (let i = 0; i < 10; i += 2) drawPath(gridGroup, `M ${getX(i)} ${baseY} L ${getX(i)} ${r1Y} L ${getX(i+1)} ${r1Y} L ${getX(i+1)} ${baseY}`);
                 const m1=(getX(0)+getX(1))/2, m2=(getX(2)+getX(3))/2, m3=(getX(4)+getX(5))/2, m4=(getX(6)+getX(7))/2, m5=(getX(8)+getX(9))/2;
-                drawPath(gridGroup, `M ${m1} 220 L ${m1} 160 L ${m2} 160 L ${m2} 220`);
-                drawPath(gridGroup, `M ${m3} 220 L ${m3} 160 L ${m4} 160 L ${m4} 220`);
-                drawPath(gridGroup, `M ${m5} 220 L ${m5} 160 L ${getX(10)} 160 L ${getX(10)} ${baseY}`);
+                drawPath(gridGroup, `M ${m1} ${r1Y} L ${m1} 160 L ${m2} 160 L ${m2} ${r1Y}`);
+                drawPath(gridGroup, `M ${m3} ${r1Y} L ${m3} 160 L ${m4} 160 L ${m4} ${r1Y}`);
+                drawPath(gridGroup, `M ${m5} ${r1Y} L ${m5} 160 L ${getX(10)} 160 L ${getX(10)} ${baseY}`);
                 const tl=(m1+m2)/2, tr=(m3+m4)/2, tr2=(m5+getX(10))/2;
                 drawPath(gridGroup, `M ${tl} 160 L ${tl} 100 L ${tr} 100 L ${tr} 160`);
                 const topL=(tl+tr)/2;
@@ -256,11 +259,11 @@
                 drawPath(gridGroup, `M ${(topL+tr2)/2} 40 L ${(topL+tr2)/2} 15`);
             }
             else if (totalPlayers === 12) {
-                for (let i = 0; i < 12; i += 2) drawPath(gridGroup, `M ${getX(i)} ${baseY} L ${getX(i)} 220 L ${getX(i+1)} 220 L ${getX(i+1)} ${baseY}`);
+                for (let i = 0; i < 12; i += 2) drawPath(gridGroup, `M ${getX(i)} ${baseY} L ${getX(i)} ${r1Y} L ${getX(i+1)} ${r1Y} L ${getX(i+1)} ${baseY}`);
                 const m = []; for(let i=0; i<12; i+=2) m.push((getX(i)+getX(i+1))/2);
-                drawPath(gridGroup, `M ${m[0]} 220 L ${m[0]} 160 L ${m[1]} 160 L ${m[1]} 220`);
-                drawPath(gridGroup, `M ${m[2]} 220 L ${m[2]} 160 L ${m[3]} 160 L ${m[3]} 220`);
-                drawPath(gridGroup, `M ${m[4]} 220 L ${m[4]} 160 L ${m[5]} 160 L ${m[5]} 220`);
+                drawPath(gridGroup, `M ${m[0]} ${r1Y} L ${m[0]} 160 L ${m[1]} 160 L ${m[1]} ${r1Y}`);
+                drawPath(gridGroup, `M ${m[2]} ${r1Y} L ${m[2]} 160 L ${m[3]} 160 L ${m[3]} ${r1Y}`);
+                drawPath(gridGroup, `M ${m[4]} ${r1Y} L ${m[4]} 160 L ${m[5]} 160 L ${m[5]} ${r1Y}`);
                 const tl=(m[0]+m[1])/2, tc=(m[2]+m[3])/2, tr=(m[4]+m[5])/2;
                 drawPath(gridGroup, `M ${tl} 160 L ${tl} 100 L ${tc} 100 L ${tc} 160`);
                 const topL = (tl+tc)/2;
@@ -268,11 +271,11 @@
                 drawPath(gridGroup, `M ${(topL+tr)/2} 40 L ${(topL+tr)/2} 15`);
             }
             else if (totalPlayers === 13) {
-                for (let i = 0; i < 12; i += 2) drawPath(gridGroup, `M ${getX(i)} ${baseY} L ${getX(i)} 220 L ${getX(i+1)} 220 L ${getX(i+1)} ${baseY}`);
+                for (let i = 0; i < 12; i += 2) drawPath(gridGroup, `M ${getX(i)} ${baseY} L ${getX(i)} ${r1Y} L ${getX(i+1)} ${r1Y} L ${getX(i+1)} ${baseY}`);
                 const m = []; for(let i=0; i<12; i+=2) m.push((getX(i)+getX(i+1))/2);
-                drawPath(gridGroup, `M ${m[0]} 220 L ${m[0]} 160 L ${m[1]} 160 L ${m[1]} 220`);
-                drawPath(gridGroup, `M ${m[2]} 220 L ${m[2]} 160 L ${m[3]} 160 L ${m[3]} 220`);
-                drawPath(gridGroup, `M ${m[4]} 220 L ${m[4]} 160 L ${m[5]} 160 L ${m[5]} 220`);
+                drawPath(gridGroup, `M ${m[0]} ${r1Y} L ${m[0]} 160 L ${m[1]} 160 L ${m[1]} ${r1Y}`);
+                drawPath(gridGroup, `M ${m[2]} ${r1Y} L ${m[2]} 160 L ${m[3]} 160 L ${m[3]} ${r1Y}`);
+                drawPath(gridGroup, `M ${m[4]} ${r1Y} L ${m[4]} 160 L ${m[5]} 160 L ${m[5]} ${r1Y}`);
                 const tl=(m[0]+m[1])/2, tc=(m[2]+m[3])/2, tr=(m[4]+m[5])/2;
                 drawPath(gridGroup, `M ${tl} 160 L ${tl} 100 L ${tc} 100 L ${tc} 160`);
                 const topL = (tl+tc)/2;
@@ -282,39 +285,34 @@
                 drawPath(gridGroup, `M ${(topL+topR)/2} 40 L ${(topL+topR)/2} 15`);
             }
             else if (totalPlayers === 14) {
-                // 14人のすべての1回戦の枠線を描画（計7ペア）
-                for (let i = 0; i < 14; i += 2) drawPath(gridGroup, `M ${getX(i)} ${baseY} L ${getX(i)} 220 L ${getX(i+1)} 220 L ${getX(i+1)} ${baseY}`);
+                for (let i = 0; i < 14; i += 2) drawPath(gridGroup, `M ${getX(i)} ${baseY} L ${getX(i)} ${r1Y} L ${getX(i+1)} ${r1Y} L ${getX(i+1)} ${baseY}`);
                 const m = []; for(let i=0; i<14; i+=2) m.push((getX(i)+getX(i+1))/2);
                 
-                // 2回戦の結合線（計3ペア分 ＋ 右端の余り1つ）
-                drawPath(gridGroup, `M ${m[0]} 220 L ${m[0]} 160 L ${m[1]} 160 L ${m[1]} 220`);
-                drawPath(gridGroup, `M ${m[2]} 220 L ${m[2]} 160 L ${m[3]} 160 L ${m[3]} 220`);
-                drawPath(gridGroup, `M ${m[4]} 220 L ${m[4]} 160 L ${m[5]} 160 L ${m[5]} 220`);
+                drawPath(gridGroup, `M ${m[0]} ${r1Y} L ${m[0]} 160 L ${m[1]} 160 L ${m[1]} ${r1Y}`);
+                drawPath(gridGroup, `M ${m[2]} ${r1Y} L ${m[2]} 160 L ${m[3]} 160 L ${m[3]} ${r1Y}`);
+                drawPath(gridGroup, `M ${m[4]} ${r1Y} L ${m[4]} 160 L ${m[5]} 160 L ${m[5]} ${r1Y}`);
                 
                 const tl=(m[0]+m[1])/2, tc=(m[2]+m[3])/2, tr=(m[4]+m[5])/2;
                 
-                // 3回戦（左の大きな山：y=100）
                 drawPath(gridGroup, `M ${tl} 160 L ${tl} 100 L ${tc} 100 L ${tc} 160`);
                 const topL = (tl+tc)/2;
                 
-                // 3回戦（右の大きな山：y=100）←【ここを綺麗に修正しました】
-                drawPath(gridGroup, `M ${tr} 160 L ${tr} 100 L ${m[6]} 100 L ${m[6]} 220`);
+                drawPath(gridGroup, `M ${tr} 160 L ${tr} 100 L ${m[6]} 100 L ${m[6]} ${r1Y}`);
                 const topR = (tr+m[6])/2;
                 
-                // 決勝戦（y=40）
                 drawPath(gridGroup, `M ${topL} 100 L ${topL} 40 L ${topR} 40 L ${topR} 100`);
                 drawPath(gridGroup, `M ${(topL+topR)/2} 40 L ${(topL+topR)/2} 15`);
             }
             else if (totalPlayers === 15) {
-                for (let i = 0; i < 14; i += 2) drawPath(gridGroup, `M ${getX(i)} ${baseY} L ${getX(i)} 220 L ${getX(i+1)} 220 L ${getX(i+1)} ${baseY}`);
+                for (let i = 0; i < 14; i += 2) drawPath(gridGroup, `M ${getX(i)} ${baseY} L ${getX(i)} ${r1Y} L ${getX(i+1)} ${r1Y} L ${getX(i+1)} ${baseY}`);
                 const m = []; for(let i=0; i<14; i+=2) m.push((getX(i)+getX(i+1))/2);
-                drawPath(gridGroup, `M ${m[0]} 220 L ${m[0]} 160 L ${m[1]} 160 L ${m[1]} 220`);
-                drawPath(gridGroup, `M ${m[2]} 220 L ${m[2]} 160 L ${m[3]} 160 L ${m[3]} 220`);
-                drawPath(gridGroup, `M ${m[4]} 220 L ${m[4]} 160 L ${m[5]} 160 L ${m[5]} 220`);
+                drawPath(gridGroup, `M ${m[0]} ${r1Y} L ${m[0]} 160 L ${m[1]} 160 L ${m[1]} ${r1Y}`);
+                drawPath(gridGroup, `M ${m[2]} ${r1Y} L ${m[2]} 160 L ${m[3]} 160 L ${m[3]} ${r1Y}`);
+                drawPath(gridGroup, `M ${m[4]} ${r1Y} L ${m[4]} 160 L ${m[5]} 160 L ${m[5]} ${r1Y}`);
                 const tl=(m[0]+m[1])/2, tc=(m[2]+m[3])/2, tr=(m[4]+m[5])/2;
                 drawPath(gridGroup, `M ${tl} 160 L ${tl} 100 L ${tc} 100 L ${tc} 160`);
                 const topL = (tl+tc)/2;
-                drawPath(gridGroup, `M ${m[6]} 220 L ${m[6]} 160 L ${getX(14)} 160 L ${getX(14)} ${baseY}`);
+                drawPath(gridGroup, `M ${m[6]} ${r1Y} L ${m[6]} 160 L ${getX(14)} 160 L ${getX(14)} ${baseY}`);
                 const tr2 = (m[6]+getX(14))/2;
                 drawPath(gridGroup, `M ${tr} 160 L ${tr} 100 L ${tr2} 100 L ${tr2} 160`);
                 const topR = (tr+tr2)/2;
@@ -322,12 +320,12 @@
                 drawPath(gridGroup, `M ${(topL+topR)/2} 40 L ${(topL+topR)/2} 15`);
             }
             else if (totalPlayers === 16) {
-                for (let i = 0; i < 16; i += 2) drawPath(gridGroup, `M ${getX(i)} ${baseY} L ${getX(i)} 220 L ${getX(i+1)} 220 L ${getX(i+1)} ${baseY}`);
+                for (let i = 0; i < 16; i += 2) drawPath(gridGroup, `M ${getX(i)} ${baseY} L ${getX(i)} ${r1Y} L ${getX(i+1)} ${r1Y} L ${getX(i+1)} ${baseY}`);
                 const m = []; for(let i=0; i<16; i+=2) m.push((getX(i)+getX(i+1))/2);
-                drawPath(gridGroup, `M ${m[0]} 220 L ${m[0]} 160 L ${m[1]} 160 L ${m[1]} 220`);
-                drawPath(gridGroup, `M ${m[2]} 220 L ${m[2]} 160 L ${m[3]} 160 L ${m[3]} 220`);
-                drawPath(gridGroup, `M ${m[4]} 220 L ${m[4]} 160 L ${m[5]} 160 L ${m[5]} 220`);
-                drawPath(gridGroup, `M ${m[6]} 220 L ${m[6]} 160 L ${m[7]} 160 L ${m[7]} 220`);
+                drawPath(gridGroup, `M ${m[0]} ${r1Y} L ${m[0]} 160 L ${m[1]} 160 L ${m[1]} ${r1Y}`);
+                drawPath(gridGroup, `M ${m[2]} ${r1Y} L ${m[2]} 160 L ${m[3]} 160 L ${m[3]} ${r1Y}`);
+                drawPath(gridGroup, `M ${m[4]} ${r1Y} L ${m[4]} 160 L ${m[5]} 160 L ${m[5]} ${r1Y}`);
+                drawPath(gridGroup, `M ${m[6]} ${r1Y} L ${m[6]} 160 L ${m[7]} 160 L ${m[7]} ${r1Y}`);
                 const tl=(m[0]+m[1])/2, tc1=(m[2]+m[3])/2, tc2=(m[4]+m[5])/2, tr=(m[6]+m[7])/2;
                 drawPath(gridGroup, `M ${tl} 160 L ${tl} 100 L ${tc1} 100 L ${tc1} 160`);
                 drawPath(gridGroup, `M ${tc2} 160 L ${tc2} 100 L ${tr} 100 L ${tr} 160`);
