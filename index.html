@@ -234,4 +234,48 @@
                     const node2 = currentNodes[i + 1];
 
                     if (node1 !== null && node2 !== null) {
-                        const midY = (node1.y +
+                        const midY = (node1.y + node2.y) / 2;
+                        const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                        path.setAttribute("d", `M ${node1.x} ${node1.y} L ${nextX} ${node1.y} L ${nextX} ${node2.y} L ${node2.x} ${node2.y}`);
+                        gridGroup.appendChild(path);
+
+                        nextNodes.push({ x: nextX, y: midY });
+                    } else if (node1 !== null || node2 !== null) {
+                        const activeNode = (node1 !== null) ? node1 : node2;
+                        const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                        path.setAttribute("d", `M ${activeNode.x} ${activeNode.y} L ${nextX} ${activeNode.y}`);
+                        gridGroup.appendChild(path);
+
+                        nextNodes.push({ x: nextX, y: activeNode.y });
+                    } else {
+                        nextNodes.push(null);
+                    }
+                }
+                currentNodes = nextNodes;
+                currentX = nextX;
+            }
+
+            // 決勝戦の右のツノ
+            if (currentNodes[0] !== null) {
+                const finalNode = currentNodes[0];
+                const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                path.setAttribute("d", `M ${finalNode.x} ${finalNode.y} L ${finalNode.x + 20} ${finalNode.y}`);
+                gridGroup.appendChild(path);
+            }
+
+            container.appendChild(svg);
+        }
+
+        function drawText(svg, text, x, y) {
+            const textNode = document.createElementNS("http://www.w3.org/2000/svg", "text");
+            textNode.setAttribute("x", x);
+            textNode.setAttribute("y", y);
+            textNode.setAttribute("class", "player-text");
+            textNode.textContent = text;
+            svg.appendChild(textNode);
+        }
+
+        updateTextArea();
+    </script>
+</body>
+</html>
