@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>トーナメント表自動作成ツール (シード・縦線最適化版)</title>
+    <title>トーナメント表自動作成ツール (完全順序・シード修正版)</title>
     <style>
         body {
             font-family: 'Helvetica Neue', Arial, sans-serif;
@@ -82,7 +82,7 @@
                         const option = document.createElement('option');
                         option.value = i;
                         option.textContent = `${i}人`;
-                        if(i === 5) option.selected = true; // デフォルトを5人に設定
+                        if(i === 5) option.selected = true; 
                         document.write(option.outerHTML);
                     }
                 </script>
@@ -114,20 +114,6 @@
             document.getElementById('player-names').value = names.join('\n');
         }
 
-        // トーナメントの配置順を決定する標準的なシード順の算出関数
-        function getTournamentOrder(size) {
-            let order = [0, 1];
-            while (order.length < size) {
-                let nextOrder = [];
-                for (let i = 0; i < order.length; i++) {
-                    nextOrder.push(order[i]);
-                    nextOrder.push(order.length * 2 - 1 - order[i]);
-                }
-                order = nextOrder;
-            }
-            return order;
-        }
-
         function generateTournament() {
             const text = document.getElementById('player-names').value.trim();
             if (!text) return;
@@ -144,14 +130,14 @@
             const container = document.getElementById('canvas-container');
             container.innerHTML = '';
 
-            // 1. 必要となる直近の2のべき乗（総スロット数）を決定
-            let leafCount = 1;
-            while (leafCount < totalPlayers) {
-                leafCount *= 2;
-            }
+            // 1. 直近の2のべき乗（4, 8, 16）を算出
+            let leafCount = 4;
+            if (totalPlayers > 4) leafCount = 8;
+            if (totalPlayers > 8) leafCount = 16;
+
             const totalRounds = Math.log2(leafCount);
 
-            // 2. レイアウトの基本サイズ設定
+            // 2. レイアウトサイズ設定
             const spacingX = 65;
             const textSpace = 110;
             const svgWidth = totalPlayers * spacingX;
@@ -167,36 +153,34 @@
             gridGroup.setAttribute("fill", "none");
             svg.appendChild(gridGroup);
 
-            // 各ラウンドごとのY座標（高階層ほど上へ）
-            // 1回戦(roundY[0])の位置を上に引き上げることで、1試合目の縦線を長くしています
+            // 各ラウンドのY座標（1回戦の縦線を長くするため、roundY[0]を上に引き上げ）
             const roundY = [];
             for (let r = 0; r < totalRounds; r++) {
-                roundY.push(baseY - 65 - (r * 45));
+                roundY.push(baseY - 70 - (r * 45));
             }
 
-            // 3. シード位置を考慮した均等割り振り（5人の場合はシードが1人になるロジック）
-            const template = getTournamentOrder(leafCount);
+            // 3. 【最重要】左から「選手1, 2, 3...」と1列に並べ、余った枠（シード）を右側に寄せる配置ロジック
             const leaves = new Array(leafCount).fill(null);
             
-            // 空き（バイ・シード）の数を算出
-            const byeCount = leafCount - totalPlayers;
+            // 1回戦を戦う必要がある人数と、最初から2回戦にいけるシード（不戦勝）の数
+            const numSeeds = leafCount - totalPlayers; // 8 - 5 = 3つが不戦勝枠
+            const numFirstRoundMatches = totalPlayers - numSeeds; // 5 - 3 = 2試合（4人）が1回戦を行う
 
-            // どの位置を空きにするかのフラグをセット（分散配置）
-            const isByeSlot = new Array(leafCount).fill(false);
-            const byePositions = getTournamentOrder(leafCount).reverse();
-            for (let i = 0; i < byeCount; i++) {
-                isByeSlot[byePositions[i]] = true;
+            let playerIdx = 0;
+            let leafIdx = 0;
+
+            // まず1回戦を行うペアを左詰めでスロットに入れる
+            for (let m = 0; m < numFirstRoundMatches; m++) {
+                leaves[leafIdx++] = players[playerIdx++];
+                leaves[leafIdx++] = players[playerIdx++];
+            }
+            // 残った選手はシードとして、1枠ずつ（相方なしの不戦勝として）スロットに入れる
+            while (playerIdx < totalPlayers) {
+                leaves[leafIdx++] = players[playerIdx++];
+                leafIdx++; // 相方スロットを空欄（null）にしてシードにする
             }
 
-            // 選手をスロットに順次割り当て
-            let pIdx = 0;
-            for (let i = 0; i < leafCount; i++) {
-                if (!isByeSlot[template[i]]) {
-                    leaves[template[i]] = players[pIdx++];
-                }
-            }
-
-            // 4. 描画初期ノードの生成（シードの人は1回戦をスキップさせる構造）
+            // 4. 初期ノードの作成（画面の左から順番にX座標を割り当てる）
             let currentNodes = [];
             let currentXPos = 0;
 
@@ -211,7 +195,7 @@
                 }
             }
 
-            // 5. 各ラウンドの線をボトムアップで描画
+            // 5. ボトムアップで線を引く
             for (let r = 0; r < totalRounds; r++) {
                 const nextNodes = [];
                 const targetY = roundY[r];
@@ -221,17 +205,17 @@
                     const right = currentNodes[i+1];
 
                     if (left && right && left.isReal && right.isReal) {
-                        // 両方に選手がいる場合のみ、このラウンドで試合（横線と縦線）を引く
+                        // 両方揃っていれば試合の線を引く
                         const nextX = (left.x + right.x) / 2;
                         drawPath(gridGroup, `M ${left.x} ${left.currentY} L ${left.x} ${targetY} L ${right.x} ${targetY} L ${right.x} ${right.currentY}`);
                         nextNodes.push({ x: nextX, currentY: targetY, isReal: true });
                     } 
                     else if (left && left.isReal) {
-                        // 片方が不戦勝（シード）の場合は、線を引かずにそのまま上の階層へシフト
+                        // 左だけ実在（シード選手）⇒ 横線は引かず、2回戦の高さまで直進可能にする
                         nextNodes.push({ x: left.x, currentY: left.currentY, isReal: true });
                     } 
                     else if (right && right.isReal) {
-                        // 片方が不戦勝（シード）の場合は、線を引かずにそのまま上の階層へシフト
+                        // 右だけ実在（シード選手）
                         nextNodes.push({ x: right.x, currentY: right.currentY, isReal: true });
                     } 
                     else {
@@ -241,7 +225,7 @@
                 currentNodes = nextNodes;
             }
 
-            // 6. 優勝者の頂点キャップを描画
+            // 6. 頂点（優勝）
             if (currentNodes.length > 0 && currentNodes[0].isReal) {
                 const topNode = currentNodes[0];
                 drawPath(gridGroup, `M ${topNode.x} ${topNode.currentY} L ${topNode.x} ${topNode.currentY - 25}`);
