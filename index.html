@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>トーナメント表自動作成ツール (SVG完全版)</title>
+    <title>トーナメント表自動作成ツール (公式シード対応版)</title>
     <style>
         /* 全体レイアウト */
         body {
@@ -145,7 +145,6 @@
     </div>
 
     <script>
-        // 選択された人数に合わせて初期テキストをセット
         function updateTextArea() {
             const count = parseInt(document.getElementById('member-count').value);
             let names = [];
@@ -155,7 +154,13 @@
             document.getElementById('player-names').value = names.join('\n');
         }
 
-        // トーナメント生成メインロジック（SVG座標計算方式）
+        // 2の累乗（2, 4, 8, 16）の枠組みを計算する関数
+        function getBaseSize(p) {
+            if (p <= 4) return 4;
+            if (p <= 8) return 8;
+            return 16;
+        }
+
         function generateTournament() {
             const text = document.getElementById('player-names').value.trim();
             if (!text) return;
@@ -170,109 +175,144 @@
 
             document.getElementById('tournament-wrapper').style.display = 'inline-block';
             const container = document.getElementById('canvas-container');
-            container.innerHTML = ''; // 初期化
+            container.innerHTML = '';
+
+            // --- 公式ルールのトーナメント枠組み構築 ---
+            const baseSize = getBaseSize(totalPlayers); // 例: 9人なら16
+            const matchCountInFirstRound = totalPlayers - (baseSize / 2); // 1回戦を行うペア数 (9人の場合は 9 - 8 = 1ペア)
+            
+            // 枠の初期化（空の配列を16個または8個作る）
+            let slots = new Array(baseSize).fill(null);
+
+            // 1回戦を割り振るインデックスの選定（左右に綺麗に分散させる）
+            // 16枠の場合、1回戦のペアは両端やバランスの良い位置から詰める
+            let playerIdx = 0;
+
+            // 1回戦が必要なペアを配置
+            for (let i = 0; i < matchCountInFirstRound; i++) {
+                // 対戦カードを組むスロット位置（左右バランスよく配置）
+                // 16スロットのうち、隣り合うスロット[2k, 2k+1]に2人を配置
+                let slotPos = i * 2; 
+                if (baseSize === 16 && i >= 4) {
+                    // 枠が溢れる場合の調整
+                    slotPos = (i - 4) * 2 + 1;
+                }
+                slots[slotPos] = players[playerIdx++];
+                slots[slotPos + 1] = players[playerIdx++];
+            }
+
+            // 残りの選手を「シード（不戦勝）枠」として配置（1回戦のペアが入っていない奇数スロットに1人ずつ入れる）
+            for (let i = 0; i < baseSize; i += 2) {
+                if (slots[i] === null && slots[i+1] === null) {
+                    if (playerIdx < totalPlayers) {
+                        slots[i] = players[playerIdx++]; // 2回戦直行
+                    }
+                }
+            }
 
             // --- 描画サイズの設定 ---
-            const playerSpacing = 70; // 選手ごとの横幅の間隔
-            const roundHeight = 45;    // 各回戦の縦幅（線の高さ）
-            const textSpaceHeight = 120; // 名前（縦書き）のための最下部のスペース
-            const topMargin = 30;     // 最上部の余白
+            const playerSpacing = 70; 
+            const roundHeight = 45;    
+            const textSpaceHeight = 120; 
+            const topMargin = 30;     
 
-            // トーナメントの総階層数を計算
-            const totalRounds = Math.ceil(Math.log2(totalPlayers));
-            
-            // 全体のキャンバスサイズ
-            const svgWidth = totalPlayers * playerSpacing;
+            const totalRounds = Math.log2(baseSize);
+            const svgWidth = baseSize * playerSpacing;
             const svgHeight = topMargin + (totalRounds * roundHeight) + textSpaceHeight;
 
-            // SVG要素の作成
             const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
             svg.setAttribute("width", svgWidth);
             svg.setAttribute("height", svgHeight);
 
-            // 線のスタイル一括用グループ
             const gridGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
             gridGroup.setAttribute("stroke", "#333");
             gridGroup.setAttribute("stroke-width", "2");
             gridGroup.setAttribute("fill", "none");
             svg.appendChild(gridGroup);
 
-            // 1. 各選手の初期位置（最下部）のX座標リストを作製
-            // 最初の段階では各ノードが「一本の垂直線の上端座標」を持っている状態にする
+            // 1回戦のノード（スタート位置）を計算
             let currentNodes = [];
-            const baseY = svgHeight - textSpaceHeight; // 線の開始位置（下端）
+            const baseY = svgHeight - textSpaceHeight;
 
-            for (let i = 0; i < totalPlayers; i++) {
-                // 各選手の中心X座標
-                const x = (i * playerSpacing) + (playerSpacing / 2);
-                
-                // 選手名（縦書き）の追加
-                const textNode = document.createElementNS("http://www.w3.org/2000/svg", "text");
-                textNode.setAttribute("x", x);
-                textNode.setAttribute("y", baseY + 10);
-                textNode.setAttribute("class", "player-text");
-                textNode.textContent = players[i];
-                svg.appendChild(textNode);
+            for (let i = 0; i < baseSize; i += 2) {
+                const x1 = (i * playerSpacing) + (playerSpacing / 2);
+                const x2 = ((i + 1) * playerSpacing) + (playerSpacing / 2);
+                const midX = (x1 + x2) / 2;
 
-                // 初期ノード位置の記録（最初は名前のすぐ上）
-                currentNodes.push({ x: x, y: baseY });
+                // ケースA: 2人とも名前が入っている（1回戦の通常対戦）
+                if (slots[i] !== null && slots[i+1] !== null) {
+                    // 名前1
+                    drawText(svg, slots[i], x1, baseY + 10);
+                    // 名前2
+                    drawText(svg, slots[i+1], x2, baseY + 10);
+
+                    // 1回戦のコ型線を描画
+                    const nextY = baseY - roundHeight;
+                    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                    path.setAttribute("d", `M ${x1} ${baseY} L ${x1} ${nextY} L ${x2} ${nextY} L ${x2} ${baseY}`);
+                    gridGroup.appendChild(path);
+
+                    currentNodes.push({ x: midX, y: nextY });
+                }
+                // ケースB: 片方だけ名前が入っている（シード選手）
+                else if (slots[i] !== null || slots[i+1] !== null) {
+                    const activeX = (slots[i] !== null) ? x1 : x2;
+                    const name = (slots[i] !== null) ? slots[i] : slots[i+1];
+                    
+                    drawText(svg, name, activeX, baseY + 10);
+
+                    // 1回戦は戦わない（シード）なので、そのまま上に一本線
+                    const nextY = baseY - roundHeight;
+                    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                    path.setAttribute("d", `M ${activeX} ${baseY} L ${activeX} ${nextY}`);
+                    gridGroup.appendChild(path);
+
+                    // シード選手の位置をそのまま2回戦の基準点にする
+                    currentNodes.push({ x: activeX, y: nextY });
+                }
+                // ケースC: 枠自体が完全に空（参加人数が少ない時）
+                else {
+                    currentNodes.push(null);
+                }
             }
 
-            // 2. 階層を1つずつ上に上がっていく座標計算
-            let currentY = baseY;
+            // 2回戦以降の描画ロジック
+            let currentY = baseY - roundHeight;
 
             while (currentNodes.length > 1) {
                 const nextNodes = [];
                 const nextY = currentY - roundHeight;
 
                 for (let i = 0; i < currentNodes.length; i += 2) {
-                    // 対戦相手（ペア）がいる場合
-                    if (i + 1 < currentNodes.length) {
-                        const node1 = currentNodes[i];
-                        const node2 = currentNodes[i + 1];
+                    const node1 = currentNodes[i];
+                    const node2 = currentNodes[i + 1];
 
-                        // 中間のX座標（これが次の回戦の結合点になる）
+                    if (node1 !== null && node2 !== null) {
                         const midX = (node1.x + node2.x) / 2;
-
-                        // 線の描画:
-                        // 1. node1から上に伸ばす
-                        // 2. node2から上に伸ばす
-                        // 3. 2つの上端を横線でつなぐ
-                        // 4. 中央からさらに少し上にツノを出す
                         const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-                        path.setAttribute("d", `
-                            M ${node1.x} ${currentY} 
-                            L ${node1.x} ${nextY} 
-                            L ${node2.x} ${nextY} 
-                            L ${node2.x} ${currentY}
-                            M ${midX} ${nextY}
-                            L ${midX} ${nextY}
-                        `);
+                        path.setAttribute("d", `M ${node1.x} ${currentY} L ${node1.x} ${nextY} L ${node2.x} ${nextY} L ${node2.x} ${currentY}`);
                         gridGroup.appendChild(path);
 
-                        // 次の階層の基準点を登録
                         nextNodes.push({ x: midX, y: nextY });
                     } 
-                    // 対戦相手がいない場合（シード・不戦勝）
-                    else {
-                        const node = currentNodes[i];
-                        
-                        // 横線を作らず、そのまま上にまっすぐ線を伸ばす（ご要望の挙動）
+                    // 片方がシード、または片側の山に誰もいない場合
+                    else if (node1 !== null || node2 !== null) {
+                        const activeNode = (node1 !== null) ? node1 : node2;
                         const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-                        path.setAttribute("d", `M ${node.x} ${currentY} L ${node.x} ${nextY}`);
+                        path.setAttribute("d", `M ${activeNode.x} ${currentY} L ${activeNode.x} ${nextY}`);
                         gridGroup.appendChild(path);
 
-                        // X座標をそのまま引き継いで次の階層に登録
-                        nextNodes.push({ x: node.x, y: nextY });
+                        nextNodes.push({ x: activeNode.x, y: nextY });
+                    } else {
+                        nextNodes.push(null);
                     }
                 }
-
                 currentNodes = nextNodes;
                 currentY = nextY;
             }
 
-            // 3. 最上部（決勝）の上の最後の突起線
-            if (currentNodes.length === 1) {
+            // 最上部の最後の突起線
+            if (currentNodes[0] !== null) {
                 const finalNode = currentNodes[0];
                 const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
                 path.setAttribute("d", `M ${finalNode.x} ${currentY} L ${finalNode.x} ${currentY - 20}`);
@@ -282,7 +322,16 @@
             container.appendChild(svg);
         }
 
-        // ページ読み込み時に初期実行
+        // テキスト描画補助関数
+        function drawText(svg, text, x, y) {
+            const textNode = document.createElementNS("http://www.w3.org/2000/svg", "text");
+            textNode.setAttribute("x", x);
+            textNode.setAttribute("y", y);
+            textNode.setAttribute("class", "player-text");
+            textNode.textContent = text;
+            svg.appendChild(textNode);
+        }
+
         updateTextArea();
     </script>
 </body>
