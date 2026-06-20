@@ -479,13 +479,56 @@
 
             const totalSlots = Math.pow(2, maxRounds);
 
-            const seedCount = totalSlots - count;
+            const seedOrder = generateSeedOrder(totalSlots);
 
+const slots = [];
+
+for (let i = 0; i < totalSlots; i++) {
+
+    const seed = seedOrder[i];
+
+    if (seed <= count) {
+        slots.push(names[seed - 1]);
+    } else {
+        slots.push(null);
+    }
+}
+			console.log(slots);
+
+			[
+"選手1", null,
+
+"選手8","選手9",
+
+"選手5", null,
+
+"選手4", null,
+
+"選手3", null,
+
+"選手6", null,
+
+"選手7","選手10",
+
+"選手2", null
+]
+			
             const stepX = usableWidth / (totalSlots - 1);
 
             let fullX = [];
 
             for (let i = 0; i < totalSlots; i++) {
+
+    if (!slots[i]) continue;
+
+    drawSvgVerticalName(
+        fullX[i],
+        textTopY,
+        slots[i],
+        fontSize,
+        letterSpacing
+    );
+} {
 
                 fullX.push(paddingX + (i * stepX));
 
@@ -767,7 +810,29 @@
 
             updateDefaultNames();
 
-            createTournament();
+            createTournament(
+				function generateSeedOrder(size) {
+
+    if (size === 2) return [1, 2];
+
+    let order = [1, 2];
+
+    while (order.length < size) {
+
+        const next = [];
+        const total = order.length * 2 + 1;
+
+        for (const seed of order) {
+            next.push(seed);
+            next.push(total - seed);
+        }
+
+        order = next;
+    }
+
+    return order;
+}
+			);
 
             const printBtn =
 
