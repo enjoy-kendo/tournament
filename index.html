@@ -82,7 +82,7 @@
                         const option = document.createElement('option');
                         option.value = i;
                         option.textContent = `${i}人`;
-                        if(i === 10) option.selected = true; // デフォルトを10人に変更
+                        if(i === 10) option.selected = true;
                         document.write(option.outerHTML);
                     }
                 </script>
@@ -154,7 +154,7 @@
                 drawVerticalText(svg, players[i] || `選手 ${i + 1}`, getX(i), baseY + 10);
             }
 
-            // --- 全人数個別の手動レイアウト ---
+            // --- 全人数個別のレイアウト ---
             
             if (totalPlayers === 3) {
                 drawPath(gridGroup, `M ${getX(0)} ${baseY} L ${getX(0)} 110 L ${getX(1)} 110 L ${getX(1)} ${baseY}`);
@@ -223,26 +223,22 @@
                 drawPath(gridGroup, `M ${(tl+tc)/2} 40 L ${(tl+tc)/2} 15`);
             }
             else if (totalPlayers === 10) {
-                // 【Excelの10人テンプレートを再現した完全左右対称手動レイアウト】
-                // 左ブロック（選手1〜5）：選手1はシード、選手2-3、選手4-5が1回戦
                 drawPath(gridGroup, `M ${getX(1)} ${baseY} L ${getX(1)} 220 L ${getX(2)} 220 L ${getX(2)} ${baseY}`);
                 drawPath(gridGroup, `M ${getX(3)} ${baseY} L ${getX(3)} 220 L ${getX(4)} 220 L ${getX(4)} ${baseY}`);
                 const ml1 = (getX(1) + getX(2)) / 2, ml2 = (getX(3) + getX(4)) / 2;
                 drawPath(gridGroup, `M ${ml1} 220 L ${ml1} 160 L ${ml2} 160 L ${ml2} 220`);
                 const tl_sub = (ml1 + ml2) / 2;
                 drawPath(gridGroup, `M ${getX(0)} ${baseY} L ${getX(0)} 100 L ${tl_sub} 100 L ${tl_sub} 160`);
-                const top_left = (getX(0) + tl_sub) / 2; // 左の山の合流地点 (y=100)
+                const top_left = (getX(0) + tl_sub) / 2;
 
-                // 右ブロック（選手6〜10）：選手6-7、選手8-9が1回戦、選手10はシード
                 drawPath(gridGroup, `M ${getX(5)} ${baseY} L ${getX(5)} 220 L ${getX(6)} 220 L ${getX(6)} ${baseY}`);
                 drawPath(gridGroup, `M ${getX(7)} ${baseY} L ${getX(7)} 220 L ${getX(8)} 220 L ${getX(8)} ${baseY}`);
                 const mr1 = (getX(5) + getX(6)) / 2, mr2 = (getX(7) + getX(8)) / 2;
                 drawPath(gridGroup, `M ${mr1} 220 L ${mr1} 160 L ${mr2} 160 L ${mr2} 220`);
                 const tr_sub = (mr1 + mr2) / 2;
                 drawPath(gridGroup, `M ${tr_sub} 160 L ${tr_sub} 100 L ${getX(9)} 100 L ${getX(9)} ${baseY}`);
-                const top_right = (tr_sub + getX(9)) / 2; // 右の山の合流地点 (y=100)
+                const top_right = (tr_sub + getX(9)) / 2;
 
-                // 決勝戦の結合 (y=40)
                 drawPath(gridGroup, `M ${top_left} 100 L ${top_left} 40 L ${top_right} 40 L ${top_right} 100`);
                 const final_center = (top_left + top_right) / 2;
                 drawPath(gridGroup, `M ${final_center} 40 L ${final_center} 15`);
@@ -250,7 +246,6 @@
             else if (totalPlayers === 11) {
                 for (let i = 0; i < 10; i += 2) drawPath(gridGroup, `M ${getX(i)} ${baseY} L ${getX(i)} 220 L ${getX(i+1)} 220 L ${getX(i+1)} ${baseY}`);
                 const m1=(getX(0)+getX(1))/2, m2=(getX(2)+getX(3))/2, m3=(getX(4)+getX(5))/2, m4=(getX(6)+getX(7))/2, m5=(getX(8)+getX(9))/2;
-                gridGroup.appendChild(gridGroup.lastChild); // ダミー
                 drawPath(gridGroup, `M ${m1} 220 L ${m1} 160 L ${m2} 160 L ${m2} 220`);
                 drawPath(gridGroup, `M ${m3} 220 L ${m3} 160 L ${m4} 160 L ${m4} 220`);
                 drawPath(gridGroup, `M ${m5} 220 L ${m5} 160 L ${getX(10)} 160 L ${getX(10)} ${baseY}`);
@@ -287,16 +282,26 @@
                 drawPath(gridGroup, `M ${(topL+topR)/2} 40 L ${(topL+topR)/2} 15`);
             }
             else if (totalPlayers === 14) {
+                // 14人のすべての1回戦の枠線を描画（計7ペア）
                 for (let i = 0; i < 14; i += 2) drawPath(gridGroup, `M ${getX(i)} ${baseY} L ${getX(i)} 220 L ${getX(i+1)} 220 L ${getX(i+1)} ${baseY}`);
                 const m = []; for(let i=0; i<14; i+=2) m.push((getX(i)+getX(i+1))/2);
+                
+                // 2回戦の結合線（計3ペア分 ＋ 右端の余り1つ）
                 drawPath(gridGroup, `M ${m[0]} 220 L ${m[0]} 160 L ${m[1]} 160 L ${m[1]} 220`);
                 drawPath(gridGroup, `M ${m[2]} 220 L ${m[2]} 160 L ${m[3]} 160 L ${m[3]} 220`);
                 drawPath(gridGroup, `M ${m[4]} 220 L ${m[4]} 160 L ${m[5]} 160 L ${m[5]} 220`);
+                
                 const tl=(m[0]+m[1])/2, tc=(m[2]+m[3])/2, tr=(m[4]+m[5])/2;
+                
+                // 3回戦（左の大きな山：y=100）
                 drawPath(gridGroup, `M ${tl} 160 L ${tl} 100 L ${tc} 100 L ${tc} 160`);
                 const topL = (tl+tc)/2;
-                drawPath(gridGroup, `M ${tr} 160 L ${tr} 100 L ${m[6]} 100 L ${m[6]} 160`);
+                
+                // 3回戦（右の大きな山：y=100）←【ここを綺麗に修正しました】
+                drawPath(gridGroup, `M ${tr} 160 L ${tr} 100 L ${m[6]} 100 L ${m[6]} 220`);
                 const topR = (tr+m[6])/2;
+                
+                // 決勝戦（y=40）
                 drawPath(gridGroup, `M ${topL} 100 L ${topL} 40 L ${topR} 40 L ${topR} 100`);
                 drawPath(gridGroup, `M ${(topL+topR)/2} 40 L ${(topL+topR)/2} 15`);
             }
