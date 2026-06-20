@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>トーナメント表自動作成ツール (完全修正版)</title>
+    <title>トーナメント表自動作成ツール (完全公平版)</title>
     <style>
         body {
             font-family: 'Helvetica Neue', Arial, sans-serif;
@@ -45,7 +45,7 @@
             border-radius: 8px;
             box-shadow: 0 4px 6px rgba(0,0,0,0.05);
             width: 100%;
-            max-width: 600px;
+            max-width: 800px;
             box-sizing: border-box;
             text-align: center;
         }
@@ -56,7 +56,7 @@
         .player-text {
             writing-mode: vertical-rl;
             text-combine-upright: digits 2;
-            font-size: 15px;
+            font-size: 14px;
             font-weight: bold;
             letter-spacing: 2px;
             dominant-baseline: central;
@@ -114,54 +114,23 @@
             document.getElementById('player-names').value = names.join('\n');
         }
 
-        // 奇数人数でも「一番綺麗な山の組み合わせ」を作るための、1回戦ペアの組み合わせロジック
-        function buildInitialNodes(players) {
-            const n = players.length;
-            // 2の累乗のターゲット(4, 8, 16)
-            let target = 4;
-            while (target < n) { target *= 2; }
-
-            const matchCount = n - (target / 2); // 1回戦を行うペアの数
-            
-            // 各位置がシード(true)か1回戦あり(false)かの配置リスト（公式バランス順）
-            let seedPattern = [];
-            if (target === 4) seedPattern = [true, false, false, true];
-            else if (target === 8) seedPattern = [true, false, false, true, true, false, false, true];
-            else seedPattern = [true, false, false, true, true, false, false, true, true, false, false, true, true, false, false, true];
-
-            let nodes = [];
-            let pIdx = 0;
-
-            for (let i = 0; i < target; i += 2) {
-                // このブロックがシード枠にするべきかチェック
-                const leftIsSeed = seedPattern[i];
-                const rightIsSeed = seedPattern[i+1];
-
-                // 1回戦ペアを作るケース（まだ消化すべき試合がある場合）
-                if (pIdx < n && nodes.length < matchCount + (n - matchCount * 2)) {
-                    // 両方シード枠でなければ、または残りの人数調整で1回戦にする
-                    if ((!leftIsSeed && !rightIsSeed) || (n - pIdx > target - i - 1)) {
-                        if (pIdx + 1 < n) {
-                            nodes.push({
-                                type: 'match',
-                                p1: players[pIdx++],
-                                p2: players[pIdx++]
-                            });
-                            continue;
-                        }
-                    }
+        // トーナメントのシード位置を完全に公平に決めるための世界標準順序（バイナリ反転順）
+        function getTournamentOrder(size) {
+            let order = [0];
+            while (order.length < size) {
+                let nextOrder = [];
+                for (let i = 0; i < order.length; i++) {
+                    nextOrder.push(order[i]);
+                    nextOrder.push(order[i] + order.length);
                 }
-                
-                // シード（不戦勝）として追加するケース
-                if (pIdx < n) {
-                    nodes.push({
-                        type: 'seed',
-                        p1: players[pIdx++],
-                        p2: null
-                    });
-                }
+                order = nextOrder;
             }
-            return nodes;
+            // 実際の対戦相手の並び順（例：8枠なら [0, 7, 3, 4, 1, 6, 2, 5] のような公式順）に変換
+            let mapping = new Array(size);
+            for(let i=0; i<size; i++) {
+                mapping[order[i]] = i;
+            }
+            return mapping;
         }
 
         function generateTournament() {
@@ -180,26 +149,42 @@
             const container = document.getElementById('canvas-container');
             container.innerHTML = '';
 
-            // 1. 実人数をベースに、無駄な空白のないノード群を生成
-            let currentNodes = buildInitialNodes(players);
-            const totalLeafs = currentNodes.length; // 実際の画面の「列」の数
+            // 1. 必要となる「2の累乗」の枠数を決定 (4, 8, 16)
+            let baseSize = 4;
+            while (baseSize < totalPlayers) { baseSize *= 2; }
 
-            // 2. 画面サイズ計算（枠数固定ではなく、実際の列数にかけるので無駄な空白が生まれない）
-            const playerSpacingX = 70;  
-            const roundHeightY = 45;    
+            // 2. 公式シード配置順を取得
+            const order = getTournamentOrder(baseSize);
+
+            // 3. シード選手（不戦勝）と1回戦ではじかれる選手を決定
+            const seedCount = baseSize - totalPlayers; 
+            let isSeedPos = new Array(baseSize).fill(false);
+            for (let i = 0; i < seedCount; i++) {
+                isSeedPos[order[baseSize - 1 - i]] = true; // 下位のシード位置から順に埋める
+            }
+
+            // 4. 枠にプレイヤーを正しくマッピング
+            let slots = new Array(baseSize).fill(null);
+            let pIdx = 0;
+            for (let i = 0; i < baseSize; i++) {
+                if (isSeedPos[i]) {
+                    slots[i] = { name: players[pIdx++], isSeed: true };
+                } else {
+                    if (pIdx < totalPlayers) {
+                        slots[i] = { name: players[pIdx++], isSeed: false };
+                    }
+                }
+            }
+
+            // --- 5. 描画サイズ計算（人数に合わせて可変） ---
+            const playerSpacingX = 60;  
+            const roundHeightY = 50;    
             const textSpaceHeight = 110; 
             const topMargin = 30;       
 
-            // 階層（回戦数）の計算
-            let tempCount = totalLeafs;
-            let depth = 1;
-            while(tempCount > 1) {
-                tempCount = Math.ceil(tempCount / 2);
-                depth++;
-            }
-
-            const svgWidth = totalLeafs * playerSpacingX;
-            const svgHeight = topMargin + (depth * roundHeightY) + textSpaceHeight;
+            const totalRounds = Math.log2(baseSize);
+            const svgWidth = baseSize * playerSpacingX;
+            const svgHeight = topMargin + (totalRounds * roundHeightY) + textSpaceHeight;
 
             const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
             svg.setAttribute("viewBox", `0 0 ${svgWidth} ${svgHeight}`);
@@ -211,52 +196,63 @@
             svg.appendChild(gridGroup);
 
             const baseY = svgHeight - textSpaceHeight;
-            let nextNodes = [];
+            let currentNodes = [];
 
-            // 3. 1回戦とシード初期線の描画
-            for (let i = 0; i < totalLeafs; i++) {
-                const node = currentNodes[i];
-                
-                if (node.type === 'match') {
-                    // 1つのブロックの中に2本の縦線を描く
-                    const x1 = (i * playerSpacingX) + (playerSpacingX * 0.25);
-                    const x2 = (i * playerSpacingX) + (playerSpacingX * 0.75);
-                    const midX = (x1 + x2) / 2;
+            // 6. 1回戦とシード初期線の描画
+            for (let i = 0; i < baseSize; i += 2) {
+                const x1 = (i * playerSpacingX) + (playerSpacingX / 2);
+                const x2 = ((i + 1) * playerSpacingX) + (playerSpacingX / 2);
+                const midX = (x1 + x2) / 2;
 
-                    drawVerticalText(svg, node.p1, x1, baseY + 10);
-                    drawVerticalText(svg, node.p2, x2, baseY + 10);
+                const s1 = slots[i];
+                const s2 = slots[i+1];
+
+                if (s1 && s2 && !s1.isSeed && !s2.isSeed) {
+                    // 両方1回戦から（通常の山）
+                    drawVerticalText(svg, s1.name, x1, baseY + 10);
+                    drawVerticalText(svg, s2.name, x2, baseY + 10);
 
                     const nextY = baseY - roundHeightY;
                     const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
                     path.setAttribute("d", `M ${x1} ${baseY} L ${x1} ${nextY} L ${x2} ${nextY} L ${x2} ${baseY}`);
                     gridGroup.appendChild(path);
 
-                    nextNodes.push({ x: midX, y: nextY });
-                } else {
-                    // シード枠：中央に1本だけまっすぐ線を引く
-                    const x = (i * playerSpacingX) + (playerSpacingX / 2);
-                    
-                    drawVerticalText(svg, node.p1, x, baseY + 10);
+                    currentNodes.push({ x: midX, y: nextY });
+                } 
+                else if (s1 && s1.isSeed) {
+                    // 左側がシード（右側は空きにして1回戦をスキップ）
+                    drawVerticalText(svg, s1.name, x1, baseY + 10);
 
                     const nextY = baseY - roundHeightY;
                     const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-                    path.setAttribute("d", `M ${x} ${baseY} L ${x} ${nextY}`);
+                    path.setAttribute("d", `M ${x1} ${baseY} L ${x1} ${nextY}`);
                     gridGroup.appendChild(path);
 
-                    nextNodes.push({ x: x, y: nextY });
+                    currentNodes.push({ x: x1, y: nextY });
+                }
+                else if (s2 && s2.isSeed) {
+                    // 右側がシード
+                    drawVerticalText(svg, s2.name, x2, baseY + 10);
+
+                    const nextY = baseY - roundHeightY;
+                    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                    path.setAttribute("d", `M ${x2} ${baseY} L ${x2} ${nextY}`);
+                    gridGroup.appendChild(path);
+
+                    currentNodes.push({ x: x2, y: nextY });
                 }
             }
 
-            // 4. 2回戦以降の上昇描画
+            // 7. 2回戦以降の描画
             let currentY = baseY - roundHeightY;
 
-            while (nextNodes.length > 1) {
-                const stepNodes = [];
+            while (currentNodes.length > 1) {
+                const nextNodes = [];
                 const nextY = currentY - roundHeightY;
 
-                for (let i = 0; i < nextNodes.length; i += 2) {
-                    const n1 = nextNodes[i];
-                    const n2 = nextNodes[i + 1];
+                for (let i = 0; i < currentNodes.length; i += 2) {
+                    const n1 = currentNodes[i];
+                    const n2 = currentNodes[i + 1];
 
                     if (n1 && n2) {
                         const midX = (n1.x + n2.x) / 2;
@@ -264,23 +260,16 @@
                         path.setAttribute("d", `M ${n1.x} ${currentY} L ${n1.x} ${nextY} L ${n2.x} ${nextY} L ${n2.x} ${currentY}`);
                         gridGroup.appendChild(path);
 
-                        stepNodes.push({ x: midX, y: nextY });
-                    } else if (n1) {
-                        // 奇数で余ったノードはそのまま上に伸ばす
-                        const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-                        path.setAttribute("d", `M ${n1.x} ${currentY} L ${n1.x} ${nextY}`);
-                        gridGroup.appendChild(path);
-
-                        stepNodes.push({ x: n1.x, y: nextY });
+                        nextNodes.push({ x: midX, y: nextY });
                     }
                 }
-                nextNodes = stepNodes;
+                currentNodes = nextNodes;
                 currentY = nextY;
             }
 
-            // 優勝の上の最後の突起線
-            if (nextNodes[0]) {
-                const finalNode = nextNodes[0];
+            // 決勝の上の最後の突起線
+            if (currentNodes[0]) {
+                const finalNode = currentNodes[0];
                 const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
                 path.setAttribute("d", `M ${finalNode.x} ${currentY} L ${finalNode.x} ${currentY - 20}`);
                 gridGroup.appendChild(path);
