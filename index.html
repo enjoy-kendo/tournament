@@ -82,7 +82,7 @@
                         const option = document.createElement('option');
                         option.value = i;
                         option.textContent = `${i}人`;
-                        if(i === 5) option.selected = true; 
+                        if(i === 10) option.selected = true; // デフォルトを10人に変更
                         document.write(option.outerHTML);
                     }
                 </script>
@@ -154,7 +154,7 @@
                 drawVerticalText(svg, players[i] || `選手 ${i + 1}`, getX(i), baseY + 10);
             }
 
-            // --- 全人数個別の手動レイアウト（構文エラー・タイポ完全修正） ---
+            // --- 全人数個別の手動レイアウト ---
             
             if (totalPlayers === 3) {
                 drawPath(gridGroup, `M ${getX(0)} ${baseY} L ${getX(0)} 110 L ${getX(1)} 110 L ${getX(1)} ${baseY}`);
@@ -171,7 +171,6 @@
                 drawPath(gridGroup, `M ${(ml+mr)/2} 40 L ${(ml+mr)/2} 15`);
             }
             else if (totalPlayers === 5) {
-                // 選手5(インデックス4)が右端でシード
                 drawPath(gridGroup, `M ${getX(0)} ${baseY} L ${getX(0)} 160 L ${getX(1)} 160 L ${getX(1)} ${baseY}`);
                 drawPath(gridGroup, `M ${getX(2)} ${baseY} L ${getX(2)} 160 L ${getX(3)} 160 L ${getX(3)} ${baseY}`);
                 const ml = (getX(0) + getX(1)) / 2, mr = (getX(2) + getX(3)) / 2;
@@ -181,7 +180,6 @@
                 drawPath(gridGroup, `M ${(ml+mr2)/2} 40 L ${(ml+mr2)/2} 15`);
             }
             else if (totalPlayers === 6) {
-                // 選手1と選手6がシード
                 drawPath(gridGroup, `M ${getX(1)} ${baseY} L ${getX(1)} 160 L ${getX(2)} 160 L ${getX(2)} ${baseY}`);
                 drawPath(gridGroup, `M ${getX(3)} ${baseY} L ${getX(3)} 160 L ${getX(4)} 160 L ${getX(4)} ${baseY}`);
                 const ml = (getX(1) + getX(2)) / 2, mr = (getX(3) + getX(4)) / 2;
@@ -192,7 +190,6 @@
                 drawPath(gridGroup, `M ${(tl+tr)/2} 40 L ${(tl+tr)/2} 15`);
             }
             else if (totalPlayers === 7) {
-                // 選手7のみシード
                 drawPath(gridGroup, `M ${getX(0)} ${baseY} L ${getX(0)} 160 L ${getX(1)} 160 L ${getX(1)} ${baseY}`);
                 drawPath(gridGroup, `M ${getX(2)} ${baseY} L ${getX(2)} 160 L ${getX(3)} 160 L ${getX(3)} ${baseY}`);
                 drawPath(gridGroup, `M ${getX(4)} ${baseY} L ${getX(4)} 160 L ${getX(5)} 160 L ${getX(5)} ${baseY}`);
@@ -226,20 +223,34 @@
                 drawPath(gridGroup, `M ${(tl+tc)/2} 40 L ${(tl+tc)/2} 15`);
             }
             else if (totalPlayers === 10) {
-                for (let i = 0; i < 8; i += 2) drawPath(gridGroup, `M ${getX(i)} ${baseY} L ${getX(i)} 220 L ${getX(i+1)} 220 L ${getX(i+1)} ${baseY}`);
-                drawPath(gridGroup, `M ${getX(8)} ${baseY} L ${getX(8)} 220 L ${getX(9)} 220 L ${getX(9)} ${baseY}`);
-                const m1=(getX(0)+getX(1))/2, m2=(getX(2)+getX(3))/2, m3=(getX(4)+getX(5))/2, m4=(getX(6)+getX(7))/2, m5=(getX(8)+getX(9))/2;
-                drawPath(gridGroup, `M ${m1} 220 L ${m1} 160 L ${m2} 160 L ${m2} 220`);
-                drawPath(gridGroup, `M ${m3} 220 L ${m3} 160 L ${m4} 160 L ${m4} 220`);
-                const tl=(m1+m2)/2, tr=(m3+m4)/2;
-                drawPath(gridGroup, `M ${tl} 160 L ${tl} 100 L ${tr} 100 L ${tr} 160`);
-                const topL=(tl+tr)/2;
-                drawPath(gridGroup, `M ${topL} 100 L ${topL} 40 L ${m5} 40 L ${m5} 220`);
-                drawPath(gridGroup, `M ${(topL+m5)/2} 40 L ${(topL+m5)/2} 15`);
+                // 【Excelの10人テンプレートを再現した完全左右対称手動レイアウト】
+                // 左ブロック（選手1〜5）：選手1はシード、選手2-3、選手4-5が1回戦
+                drawPath(gridGroup, `M ${getX(1)} ${baseY} L ${getX(1)} 220 L ${getX(2)} 220 L ${getX(2)} ${baseY}`);
+                drawPath(gridGroup, `M ${getX(3)} ${baseY} L ${getX(3)} 220 L ${getX(4)} 220 L ${getX(4)} ${baseY}`);
+                const ml1 = (getX(1) + getX(2)) / 2, ml2 = (getX(3) + getX(4)) / 2;
+                drawPath(gridGroup, `M ${ml1} 220 L ${ml1} 160 L ${ml2} 160 L ${ml2} 220`);
+                const tl_sub = (ml1 + ml2) / 2;
+                drawPath(gridGroup, `M ${getX(0)} ${baseY} L ${getX(0)} 100 L ${tl_sub} 100 L ${tl_sub} 160`);
+                const top_left = (getX(0) + tl_sub) / 2; // 左の山の合流地点 (y=100)
+
+                // 右ブロック（選手6〜10）：選手6-7、選手8-9が1回戦、選手10はシード
+                drawPath(gridGroup, `M ${getX(5)} ${baseY} L ${getX(5)} 220 L ${getX(6)} 220 L ${getX(6)} ${baseY}`);
+                drawPath(gridGroup, `M ${getX(7)} ${baseY} L ${getX(7)} 220 L ${getX(8)} 220 L ${getX(8)} ${baseY}`);
+                const mr1 = (getX(5) + getX(6)) / 2, mr2 = (getX(7) + getX(8)) / 2;
+                drawPath(gridGroup, `M ${mr1} 220 L ${mr1} 160 L ${mr2} 160 L ${mr2} 220`);
+                const tr_sub = (mr1 + mr2) / 2;
+                drawPath(gridGroup, `M ${tr_sub} 160 L ${tr_sub} 100 L ${getX(9)} 100 L ${getX(9)} ${baseY}`);
+                const top_right = (tr_sub + getX(9)) / 2; // 右の山の合流地点 (y=100)
+
+                // 決勝戦の結合 (y=40)
+                drawPath(gridGroup, `M ${top_left} 100 L ${top_left} 40 L ${top_right} 40 L ${top_right} 100`);
+                const final_center = (top_left + top_right) / 2;
+                drawPath(gridGroup, `M ${final_center} 40 L ${final_center} 15`);
             }
             else if (totalPlayers === 11) {
                 for (let i = 0; i < 10; i += 2) drawPath(gridGroup, `M ${getX(i)} ${baseY} L ${getX(i)} 220 L ${getX(i+1)} 220 L ${getX(i+1)} ${baseY}`);
                 const m1=(getX(0)+getX(1))/2, m2=(getX(2)+getX(3))/2, m3=(getX(4)+getX(5))/2, m4=(getX(6)+getX(7))/2, m5=(getX(8)+getX(9))/2;
+                gridGroup.appendChild(gridGroup.lastChild); // ダミー
                 drawPath(gridGroup, `M ${m1} 220 L ${m1} 160 L ${m2} 160 L ${m2} 220`);
                 drawPath(gridGroup, `M ${m3} 220 L ${m3} 160 L ${m4} 160 L ${m4} 220`);
                 drawPath(gridGroup, `M ${m5} 220 L ${m5} 160 L ${getX(10)} 160 L ${getX(10)} ${baseY}`);
