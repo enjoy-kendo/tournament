@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>トーナメント表自動作成ツール (表示位置最適化版)</title>
+    <title>トーナメント表自動作成ツール (表示位置・名前切れ完全修正版)</title>
     <style>
         body {
             font-family: 'Helvetica Neue', Arial, sans-serif;
@@ -17,12 +17,12 @@
 
         .control-panel {
             background: white;
-            padding: 15px; /* 少しスリムに */
+            padding: 15px;
             border-radius: 8px;
             box-shadow: 0 4px 6px rgba(0,0,0,0.05);
             width: 100%;
             max-width: 500px;
-            margin-bottom: 10px; /* 余白を縮小 */
+            margin-bottom: 10px;
             box-sizing: border-box;
         }
 
@@ -131,11 +131,10 @@
             container.innerHTML = '';
 
             const spacingX = 65;
-            const textSpace = 100;
             const svgWidth = totalPlayers * spacingX;
-            // 高さの計算をコンパクトに
-            const svgHeight = 250 + (totalPlayers > 8 ? 60 : 0); 
-            const baseY = 200; // 上の方に表示するための基準座標
+            // 選手名のテキスト長を考慮して高さを十分に確保
+            const svgHeight = 400; 
+            const baseY = 250; // テキストが切れないよう、基準線を十分に下げる
 
             const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
             svg.setAttribute("viewBox", `0 0 ${svgWidth} ${svgHeight}`);
@@ -146,12 +145,13 @@
             gridGroup.setAttribute("fill", "none");
             svg.appendChild(gridGroup);
 
-            // 1回戦の縦線を長くする設定
+            // 1回戦の縦線が長く、かつ画面内に収まる高さ調整
             const roundY = [baseY - 70, baseY - 110, baseY - 150, baseY - 190];
 
             let currentNodes = [];
             for (let i = 0; i < totalPlayers; i++) {
                 const curX = (i * spacingX) + (spacingX / 2);
+                // 選手名を描画（Y座標をbaseY+10に固定し、枠内に収める）
                 drawVerticalText(svg, players[i], curX, baseY + 10);
                 currentNodes.push({ x: curX, currentY: baseY });
             }
