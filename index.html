@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>トーナメント表自動作成ツール (完全均等レイアウト版)</title>
+    <title>トーナメント表自動作成ツール (1回戦縦線延長版)</title>
     <style>
         body {
             font-family: 'Helvetica Neue', Arial, sans-serif;
@@ -142,7 +142,7 @@
             const spacingX = 65;
             const textSpace = 110;
             const svgWidth = totalPlayers * spacingX;
-            const svgHeight = 100 + (totalRounds * 60) + textSpace; // 階層に応じて高さを自動調整
+            const svgHeight = 100 + (totalRounds * 60) + textSpace; 
             const baseY = svgHeight - textSpace;
 
             const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
@@ -154,11 +154,11 @@
             gridGroup.setAttribute("fill", "none");
             svg.appendChild(gridGroup);
 
-            // 3. 各階層（ラウンド）ごとの固定Y座標をあらかじめ算出
-            // roundY[0]: 1回戦の横線の高さ, roundY[1]: 2回戦の横線の高さ ...
+            // 3. 各階層（ラウンド）ごとの固定Y座標を算出
+            // ★ roundY[0] (1回戦の横線の高さ) をさらに上に引き上げ、1試合目の縦線を長く調整しました
             const roundY = [];
             for (let r = 0; r < totalRounds; r++) {
-                roundY.push(baseY - 45 - (r * 55));
+                roundY.push(baseY - 60 - (r * 50));
             }
 
             // 4. 標準的なトーナメント配置順（シードが両端に均等に散るミラクル配列）
@@ -172,12 +172,10 @@
             // 5. どの「葉（スロット）」に実際の選手を割り当てるか（シード位置の判定）
             const leaves = new Array(leafCount).fill(null);
             let assigned = 0;
-            // まずは各ペアに最低1人ずつ配置してバイパス（シード）を作らせないようにする
             for (let i = 0; i < leafCount; i += 2) {
                 if (assigned < totalPlayers) leaves[template[i]] = players[assigned++];
                 if (assigned < totalPlayers) leaves[template[i+1]] = players[assigned++];
             }
-            // 溢れた分を残りの空きスロットに詰める
             for (let i = 0; i < leafCount; i++) {
                 if (leaves[i] === null && assigned < totalPlayers) {
                     leaves[i] = players[assigned++];
@@ -190,13 +188,11 @@
 
             for (let i = 0; i < leafCount; i++) {
                 if (leaves[i] !== null) {
-                    // 実在する選手ノード
                     const curX = (pIdx * spacingX) + (spacingX / 2);
                     drawVerticalText(svg, leaves[i], curX, baseY + 10);
                     currentNodes.push({ x: curX, currentY: baseY, isReal: true });
                     pIdx++;
                 } else {
-                    // シード用のダミーノード
                     currentNodes.push({ x: null, currentY: baseY, isReal: false });
                 }
             }
@@ -204,31 +200,27 @@
             // 7. ボトムアップでトーナメントの線を引く
             for (let r = 0; r < totalRounds; r++) {
                 const nextNodes = [];
-                const targetY = roundY[r]; // このラウンドの固定高さ
+                const targetY = roundY[r];
 
                 for (let i = 0; i < currentNodes.length; i += 2) {
                     const left = currentNodes[i];
                     const right = currentNodes[i+1];
 
                     if (left.isReal && right.isReal) {
-                        // 両方とも実在ノード ＝ 通常の試合（横線で結ぶ）
                         const nextX = (left.x + right.x) / 2;
                         
-                        // 左から上って、横にいって、右に下りる
+                        // 左右のノードからこのラウンドの固定高さ（targetY）まで線を引く
                         drawPath(gridGroup, `M ${left.x} ${left.currentY} L ${left.x} ${targetY} L ${right.x} ${targetY} L ${right.x} ${right.currentY}`);
                         
                         nextNodes.push({ x: nextX, currentY: targetY, isReal: true });
                     } 
                     else if (left.isReal && !right.isReal) {
-                        // 左だけ実在 ＝ シード（横線は引かず、この階層のY座標を記憶して直進させる）
                         nextNodes.push({ x: left.x, currentY: left.currentY, isReal: true });
                     } 
                     else if (!left.isReal && right.isReal) {
-                        // 右だけ実在 ＝ シード
                         nextNodes.push({ x: right.x, currentY: right.currentY, isReal: true });
                     } 
                     else {
-                        // 両方ダミー
                         nextNodes.push({ x: null, currentY: targetY, isReal: false });
                     }
                 }
