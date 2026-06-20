@@ -2,65 +2,79 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>トーナメント表作成</title>
 
 <style>
 
-body{
-    font-family:sans-serif;
-    margin:0;
-    padding:15px;
-    background:#e5e8ec;
+*{
+    box-sizing:border-box;
 }
 
-.control{
-    max-width:800px;
-    margin:auto;
-    background:white;
-    padding:20px;
+body{
+    margin:0;
+    padding:12px;
+    font-family:"Yu Gothic","Meiryo",sans-serif;
+    background:#dfe3e8;
+}
+
+.control-panel{
+    background:#fff;
     border-radius:8px;
-    box-shadow:0 2px 6px rgba(0,0,0,.15);
+    padding:15px;
+    margin-bottom:15px;
+    box-shadow:0 2px 5px rgba(0,0,0,.15);
+}
+
+h1{
+    margin:0 0 15px;
+    font-size:22px;
+}
+
+.row{
+    margin-bottom:12px;
 }
 
 label{
     font-weight:bold;
 }
 
+select{
+    padding:6px;
+    font-size:14px;
+}
+
 textarea{
     width:100%;
     height:260px;
-    margin-top:10px;
-    box-sizing:border-box;
+    resize:vertical;
+    padding:8px;
+    font-size:14px;
 }
 
 button{
     border:none;
-    color:white;
     padding:10px 18px;
     border-radius:4px;
     cursor:pointer;
-    margin-right:8px;
+    color:white;
+    font-size:14px;
 }
 
 #createBtn{
-    background:#0e2248;
+    background:#17335d;
 }
 
 #printBtn{
-    background:#26a042;
+    background:#229a45;
 }
 
-#tournamentArea{
-    margin-top:20px;
+#bracketContainer{
     background:white;
+    border-radius:8px;
     padding:20px;
     overflow:auto;
-}
-
-.playerText{
-    writing-mode:vertical-rl;
-    text-orientation:upright;
+    box-shadow:0 2px 5px rgba(0,0,0,.15);
 }
 
 svg{
@@ -68,20 +82,32 @@ svg{
     margin:auto;
 }
 
-@media print{
+.player-name{
+    writing-mode:vertical-rl;
+    text-orientation:upright;
+}
 
-    .control{
-        display:none;
-    }
+@page{
+    size:A4 landscape;
+    margin:8mm;
+}
+
+@media print{
 
     body{
         background:white;
         padding:0;
     }
 
-    #tournamentArea{
-        margin:0;
+    .control-panel{
+        display:none;
+    }
+
+    #bracketContainer{
+        box-shadow:none;
+        border:none;
         padding:0;
+        margin:0;
         overflow:visible;
     }
 
@@ -94,12 +120,17 @@ svg{
 
 </style>
 </head>
+
 <body>
 
-<div class="control">
+<div class="control-panel">
 
-<label>
-人数選択：
+<h1>トーナメント表作成</h1>
+
+<div class="row">
+
+<label>人数：</label>
+
 <select id="playerCount">
 <option value="3">3人</option>
 <option value="4">4人</option>
@@ -115,200 +146,461 @@ svg{
 <option value="14">14人</option>
 <option value="15">15人</option>
 </select>
-</label>
-
-<br><br>
-
-<button id="createBtn">トーナメント表を作成</button>
-<button id="printBtn">印刷する</button>
-
-<br><br>
-
-<label>参加者名（改行区切り）</label>
-
-<textarea id="players"></textarea>
 
 </div>
 
-<div id="tournamentArea"></div>
+<div class="row">
+
+<button id="createBtn">
+トーナメント表を作成
+</button>
+
+<button id="printBtn">
+印刷する
+</button>
+
+</div>
+
+<div class="row">
+
+<label>参加者名（改行区切り）</label>
+
+<textarea id="playerNames"></textarea>
+
+</div>
+
+</div>
+
+<div id="bracketContainer"></div>
 
 <script>
 
-const textarea=document.getElementById("players");
-const playerCount=document.getElementById("playerCount");
+const playerCount =
+    document.getElementById("playerCount");
 
-function fillDefault(){
+const playerNames =
+    document.getElementById("playerNames");
 
-    let n=parseInt(playerCount.value);
+const bracketContainer =
+    document.getElementById("bracketContainer");
+
+document
+    .getElementById("printBtn")
+    .addEventListener("click",()=>window.print());
+
+document
+    .getElementById("createBtn")
+    .addEventListener("click",createBracket);
+
+
+/* --------------------
+   初期選手名作成
+-------------------- */
+
+function fillDefaultNames(){
+
+    const count =
+        parseInt(playerCount.value);
 
     let arr=[];
 
-    for(let i=1;i<=n;i++){
+    for(let i=1;i<=count;i++){
+
         arr.push("選手"+i);
+
     }
 
-    textarea.value=arr.join("\n");
+    playerNames.value =
+        arr.join("\n");
 }
 
-playerCount.addEventListener("change",fillDefault);
+playerCount.addEventListener(
+    "change",
+    fillDefaultNames
+);
 
-fillDefault();
+fillDefaultNames();
 
-document.getElementById("printBtn").onclick=()=>{
-    window.print();
-};
 
-document.getElementById("createBtn").onclick=drawTournament;
+/* --------------------
+   2のべき乗
+-------------------- */
 
-/* ---------- シード配置 ---------- */
+function nextPowerOfTwo(n){
+
+    let p=1;
+
+    while(p<n){
+
+        p*=2;
+
+    }
+
+    return p;
+}
+
+
+/* --------------------
+   シード配置
+-------------------- */
 
 function seedOrder(size){
 
-    if(size===1) return [1];
+    if(size===1){
 
-    let prev=seedOrder(size/2);
+        return [1];
 
-    let result=[];
+    }
 
-    prev.forEach(v=>{
-        result.push(v);
-        result.push(size+1-v);
+    const prev =
+        seedOrder(size/2);
+
+    const result=[];
+
+    prev.forEach(seed=>{
+
+        result.push(seed);
+
+        result.push(
+            size + 1 - seed
+        );
+
     });
 
     return result;
 }
 
-function nextPow2(n){
 
-    let p=1;
+/* --------------------
+   選手取得
+-------------------- */
 
-    while(p<n) p*=2;
+function getPlayers(){
 
-    return p;
-}
-
-/* ---------- 描画 ---------- */
-
-function drawTournament(){
-
-    let names=
-        textarea.value
+    return playerNames.value
         .split("\n")
         .map(v=>v.trim())
-        .filter(v=>v);
+        .filter(v=>v.length);
 
-    let count=names.length;
+}
 
-    if(count<3){
-        alert("3人以上入力してください");
-        return;
-    }
 
-    let size=nextPow2(count);
+/* --------------------
+   シード反映
+-------------------- */
 
-    let seeds=seedOrder(size);
+function buildSeedSlots(players){
 
-    let slots=new Array(size).fill("BYE");
+    const count =
+        players.length;
+
+    const size =
+        nextPowerOfTwo(count);
+
+    const order =
+        seedOrder(size);
+
+    const slots =
+        new Array(size).fill("");
 
     for(let i=0;i<count;i++){
 
-        let pos=seeds.indexOf(i+1);
+        const seed=i+1;
 
-        if(pos>=0){
-            slots[pos]=names[i];
-        }
+        const pos =
+            order.indexOf(seed);
+
+        slots[pos] =
+            players[i];
+
     }
 
-    createSvg(slots,size);
+    return slots;
+
 }
 
-function createSvg(players,size){
 
-    const leafGap=60;
-    const roundGap=120;
-    const topMargin=50;
-    const leftMargin=50;
+/* --------------------
+   メイン処理
+-------------------- */
 
-    const rounds=Math.log2(size);
+function createBracket(){
 
-    const width=(rounds+1)*roundGap+150;
-    const height=size*leafGap+100;
+    const players =
+        getPlayers();
 
-    const svgNS="http://www.w3.org/2000/svg";
+    if(players.length < 3){
 
-    const svg=document.createElementNS(svgNS,"svg");
+        alert(
+            "3人以上入力してください"
+        );
+
+        return;
+
+    }
+
+    if(players.length > 15){
+
+        alert(
+            "15人以下で入力してください"
+        );
+
+        return;
+
+    }
+
+    const slots =
+        buildSeedSlots(players);
+
+    drawBracket(slots);
+
+}
+
+/* --------------------
+   SVG描画
+-------------------- */
+
+function drawBracket(slots){
+
+    bracketContainer.innerHTML="";
+
+    const count = slots.length;
+    const rounds = Math.log2(count);
+
+    const playerGap = 90;
+    const roundGap = 90;
+
+    const bottomMargin = 140;
+    const topMargin = 60;
+
+    const width =
+        Math.max(
+            1000,
+            count * playerGap + 120
+        );
+
+    const height =
+        rounds * roundGap +
+        bottomMargin +
+        topMargin;
+
+    const svgNS =
+        "http://www.w3.org/2000/svg";
+
+    const svg =
+        document.createElementNS(
+            svgNS,
+            "svg"
+        );
 
     svg.setAttribute("width",width);
     svg.setAttribute("height",height);
 
-    const area=document.getElementById("tournamentArea");
-    area.innerHTML="";
-    area.appendChild(svg);
+    bracketContainer.appendChild(svg);
 
-    const positions=[];
+    const leafY =
+        height - bottomMargin;
 
-    for(let i=0;i<size;i++){
+    let currentNodes=[];
 
-        let y=topMargin+i*leafGap;
+    /* --------------------
+       選手名描画
+    -------------------- */
 
-        positions.push(y);
+    for(let i=0;i<count;i++){
 
-        let text=document.createElementNS(svgNS,"text");
+        const x =
+            60 + i * playerGap;
 
-        text.setAttribute("x",width-30);
-        text.setAttribute("y",y+20);
+        const text =
+            document.createElementNS(
+                svgNS,
+                "text"
+            );
 
-        text.setAttribute("font-size","16");
-        text.setAttribute("font-weight","bold");
-        text.setAttribute("fill","#0d2a52");
+        text.setAttribute("x",x);
+        text.setAttribute(
+            "y",
+            leafY + 25
+        );
 
-        text.textContent=players[i];
+        text.setAttribute(
+            "font-size",
+            "16"
+        );
 
-        text.style.writingMode="vertical-rl";
-        text.style.glyphOrientationVertical="0";
+        text.setAttribute(
+            "font-weight",
+            "bold"
+        );
+
+        text.setAttribute(
+            "text-anchor",
+            "middle"
+        );
+
+        text.style.writingMode =
+            "vertical-rl";
+
+        text.style.textOrientation =
+            "upright";
+
+        text.textContent =
+            slots[i];
 
         svg.appendChild(text);
+
+        currentNodes.push({
+            x:x,
+            y:leafY
+        });
+
     }
 
-    let current=positions.slice();
+    /* --------------------
+       ラウンド描画
+    -------------------- */
 
-    for(let round=0;round<rounds;round++){
+    for(
+        let round=1;
+        round<=rounds;
+        round++
+    ){
 
-        let x=width-100-(round*roundGap);
+        const nextNodes=[];
 
-        let next=[];
+        const y =
+            leafY -
+            round*roundGap;
 
-        for(let i=0;i<current.length;i+=2){
+        for(
+            let i=0;
+            i<currentNodes.length;
+            i+=2
+        ){
 
-            let y1=current[i];
-            let y2=current[i+1];
+            const left =
+                currentNodes[i];
 
-            let mid=(y1+y2)/2;
+            const right =
+                currentNodes[i+1];
 
-            drawLine(svg,x,y1,x,y2);
+            const centerX =
+                (
+                    left.x +
+                    right.x
+                ) / 2;
 
-            drawLine(svg,x-60,mid,x,mid);
+            drawLine(
+                svg,
+                left.x,
+                left.y,
+                left.x,
+                y
+            );
 
-            next.push(mid);
+            drawLine(
+                svg,
+                right.x,
+                right.y,
+                right.x,
+                y
+            );
+
+            drawLine(
+                svg,
+                left.x,
+                y,
+                right.x,
+                y
+            );
+
+            nextNodes.push({
+                x:centerX,
+                y:y
+            });
+
         }
 
-        current=next;
+        currentNodes =
+            nextNodes;
+
     }
+
+    /* --------------------
+       優勝表示
+    -------------------- */
+
+    const champion =
+        currentNodes[0];
 
     drawLine(
         svg,
-        width-100-rounds*roundGap-60,
-        current[0],
-        width-100-rounds*roundGap,
-        current[0]
+        champion.x,
+        champion.y,
+        champion.x,
+        champion.y - 40
     );
+
+    const title =
+        document.createElementNS(
+            svgNS,
+            "text"
+        );
+
+    title.setAttribute(
+        "x",
+        champion.x
+    );
+
+    title.setAttribute(
+        "y",
+        champion.y - 50
+    );
+
+    title.setAttribute(
+        "font-size",
+        "20"
+    );
+
+    title.setAttribute(
+        "font-weight",
+        "bold"
+    );
+
+    title.setAttribute(
+        "text-anchor",
+        "middle"
+    );
+
+    title.textContent =
+        "優勝";
+
+    svg.appendChild(title);
+
 }
 
-function drawLine(svg,x1,y1,x2,y2){
 
-    const svgNS="http://www.w3.org/2000/svg";
+/* --------------------
+   線描画
+-------------------- */
 
-    let line=document.createElementNS(svgNS,"line");
+function drawLine(
+    svg,
+    x1,
+    y1,
+    x2,
+    y2
+){
+
+    const svgNS =
+        "http://www.w3.org/2000/svg";
+
+    const line =
+        document.createElementNS(
+            svgNS,
+            "line"
+        );
 
     line.setAttribute("x1",x1);
     line.setAttribute("y1",y1);
@@ -316,13 +608,26 @@ function drawLine(svg,x1,y1,x2,y2){
     line.setAttribute("x2",x2);
     line.setAttribute("y2",y2);
 
-    line.setAttribute("stroke","#333");
-    line.setAttribute("stroke-width","2");
+    line.setAttribute(
+        "stroke",
+        "#333"
+    );
+
+    line.setAttribute(
+        "stroke-width",
+        "2"
+    );
 
     svg.appendChild(line);
+
 }
 
-drawTournament();
+
+/* --------------------
+   初期表示
+-------------------- */
+
+createBracket();
 
 </script>
 
