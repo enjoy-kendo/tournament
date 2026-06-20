@@ -3,8 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>トーナメント表自動作成ツール (スマホ・5人対応版)</title>
+    <title>トーナメント表自動作成ツール (完全修正版)</title>
     <style>
+        /* 全体レイアウト */
         body {
             font-family: 'Helvetica Neue', Arial, sans-serif;
             background-color: #f0f4f8;
@@ -15,6 +16,7 @@
             align-items: center;
         }
 
+        /* 入力フォーム */
         .control-panel {
             background: white;
             padding: 20px;
@@ -26,38 +28,84 @@
             box-sizing: border-box;
         }
 
-        .form-group { margin-bottom: 15px; }
-        label { display: block; font-weight: bold; margin-bottom: 8px; color: #333; }
-        select, textarea {
-            width: 100%; padding: 10px; border: 1px solid #ccc;
-            border-radius: 4px; font-size: 14px; box-sizing: border-box;
+        .form-group {
+            margin-bottom: 15px;
         }
-        textarea { height: 120px; resize: vertical; }
 
-        .btn-group { display: flex; gap: 10px; margin-top: 15px; }
-        button { flex: 1; padding: 12px; border: none; border-radius: 4px; font-size: 14px; font-weight: bold; cursor: pointer; }
+        label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: #333;
+        }
+
+        select, textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+
+        textarea {
+            height: 120px;
+            resize: vertical;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        button {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
         .btn-create { background-color: #0f1e36; color: white; }
         .btn-print { background-color: #21ba45; color: white; }
 
+        /* トーナメント表示エリア（ここをスマホ対応に） */
         .tournament-wrapper {
             background: white;
-            padding: 20px;
+            padding: 20px 10px;
             border-radius: 8px;
             box-shadow: 0 4px 6px rgba(0,0,0,0.05);
             width: 100%;
-            max-width: 600px;
+            max-width: 600px; /* 画面が大きくてもこれ以上は広がらない */
             box-sizing: border-box;
             text-align: center;
         }
 
-        #canvas-container { width: 100%; display: flex; justify-content: center; }
-        svg { width: 100%; height: auto; max-width: 100%; }
+        #canvas-container {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+        }
 
+        /* SVGのレスポンシブ魔法：下から上スタイルでもスマホ幅に100%自動フィット */
+        svg {
+            width: 100%;
+            height: auto;
+            max-width: 100%;
+        }
+
+        /* 縦書きテキストスタイル */
         .player-text {
-            font-size: 14px;
+            writing-mode: vertical-rl;
+            text-combine-upright: digits 2;
+            font-size: 15px;
             font-weight: bold;
+            letter-spacing: 2px;
             dominant-baseline: central;
-            text-anchor: end;
+            text-anchor: start;
             fill: #333;
         }
 
@@ -79,7 +127,7 @@
                         const option = document.createElement('option');
                         option.value = i;
                         option.textContent = `${i}人`;
-                        if(i === 5) option.selected = true; // デフォルトを5人に設定
+                        if(i === 5) option.selected = true; 
                         document.write(option.outerHTML);
                     }
                 </script>
@@ -117,11 +165,11 @@
             return 16;
         }
 
-        // 大会公式シード配置マップ（5人〜8人の時は8、9〜16人の時は16ベース）
+        // ご提示いただいた5人の画像（左に1つ、右に2つの1回戦の山）を完全に再現する配置マップ
         const SEED_PRIORITY_MAP = {
             4:  [0, 3, 1, 2],
-            8:  [0, 7, 2, 5, 1, 6, 3, 4], // 5人の時に画像通り美しく分かれる並び
-            16: [0, 15, 4, 11, 2, 13, 6, 9, 1, 14, 5, 10, 3, 12, 7, 8]
+            8:  [0, 3, 7, 4, 1, 2, 5, 6], // ここを修正：5人の時に[0,3,7]がシードになり、残る1回戦が画像通りの位置になります
+            16: [0, 7, 15, 8, 3, 4, 11, 12, 1, 6, 14, 9, 2, 5, 13, 10]
         };
 
         function generateTournament() {
@@ -152,7 +200,7 @@
             let slots = new Array(baseSize).fill(null);
             let playerIdx = 0;
 
-            // 1回戦の通常ペアを配置
+            // 1回戦のペアを配置
             for (let i = 0; i < baseSize; i += 2) {
                 if (!isSeedSlot[i] && !isSeedSlot[i+1]) {
                     slots[i] = players[playerIdx++];
@@ -161,21 +209,22 @@
             }
             // シード枠に配置
             for (let i = 0; i < baseSize; i++) {
-                if (isSeedSlot[i]) {
+                if (isSeedSlot[i] && playerIdx < totalPlayers) {
                     slots[i] = players[playerIdx++];
                 }
             }
 
-            // 横型レイアウトのサイズ設定
-            const playerSpacingY = 45;  
-            const roundWidthX = 65;     
-            const textSpaceWidth = 90;  
-            const rightMargin = 30;     
+            // --- 下から上スタイルの座標・サイズ設計 ---
+            const playerSpacingX = 65;  // 各プレイヤーの横幅
+            const roundHeightY = 45;    // 各回戦の縦の高さ
+            const textSpaceHeight = 110; // 最下部の名前スペース
+            const topMargin = 30;       // 最上部の余白
 
             const totalRounds = Math.log2(baseSize);
-            const svgHeight = baseSize * playerSpacingY;
-            const svgWidth = textSpaceWidth + (totalRounds * roundWidthX) + rightMargin;
+            const svgWidth = baseSize * playerSpacingX;
+            const svgHeight = topMargin + (totalRounds * roundHeightY) + textSpaceHeight;
 
+            // viewBoxを使うことで、何人になってもスマホの画面幅に合わせて自動で縮小されます！
             const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
             svg.setAttribute("viewBox", `0 0 ${svgWidth} ${svgHeight}`);
 
@@ -186,87 +235,87 @@
             svg.appendChild(gridGroup);
 
             let currentNodes = [];
-            const baseX = textSpaceWidth;
+            const baseY = svgHeight - textSpaceHeight;
 
-            // 1回戦・シードの初期描画
+            // 1回戦・シード初期線の描画
             for (let i = 0; i < baseSize; i += 2) {
-                const y1 = (i * playerSpacingY) + (playerSpacingY / 2);
-                const y2 = ((i + 1) * playerSpacingY) + (playerSpacingY / 2);
-                const midY = (y1 + y2) / 2;
+                const x1 = (i * playerSpacingX) + (playerSpacingX / 2);
+                const x2 = ((i + 1) * playerSpacingX) + (playerSpacingX / 2);
+                const midX = (x1 + x2) / 2;
 
                 if (slots[i] !== null && slots[i+1] !== null) {
-                    drawText(svg, slots[i], baseX - 10, y1);
-                    drawText(svg, slots[i+1], baseX - 10, y2);
+                    drawVerticalText(svg, slots[i], x1, baseY + 10);
+                    drawVerticalText(svg, slots[i+1], x2, baseY + 10);
 
-                    const nextX = baseX + roundWidthX;
+                    const nextY = baseY - roundHeightY;
                     const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-                    path.setAttribute("d", `M ${baseX} ${y1} L ${nextX} ${y1} L ${nextX} ${y2} L ${baseX} ${y2}`);
+                    path.setAttribute("d", `M ${x1} ${baseY} L ${x1} ${nextY} L ${x2} ${nextY} L ${x2} ${baseY}`);
                     gridGroup.appendChild(path);
 
-                    currentNodes.push({ x: nextX, y: midY });
+                    currentNodes.push({ x: midX, y: nextY });
                 }
                 else if (slots[i] !== null || slots[i+1] !== null) {
-                    const activeY = (slots[i] !== null) ? y1 : y2;
+                    const activeX = (slots[i] !== null) ? x1 : x2;
                     const name = (slots[i] !== null) ? slots[i] : slots[i+1];
                     
-                    drawText(svg, name, baseX - 10, activeY);
+                    drawVerticalText(svg, name, activeX, baseY + 10);
 
-                    const nextX = baseX + roundWidthX;
+                    const nextY = baseY - roundHeightY;
                     const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-                    path.setAttribute("d", `M ${baseX} ${activeY} L ${nextX} ${activeY}`);
+                    path.setAttribute("d", `M ${activeX} ${baseY} L ${activeX} ${nextY}`);
                     gridGroup.appendChild(path);
 
-                    currentNodes.push({ x: nextX, y: activeY });
+                    currentNodes.push({ x: activeX, y: nextY });
                 } else {
                     currentNodes.push(null);
                 }
             }
 
-            // 2回戦以降の描画
-            let currentX = baseX + roundWidthX;
+            // 2回戦以降の描画（上へ進む）
+            let currentY = baseY - roundHeightY;
 
             while (currentNodes.length > 1) {
                 const nextNodes = [];
-                const nextX = currentX + roundWidthX;
+                const nextY = currentY - roundHeightY;
 
                 for (let i = 0; i < currentNodes.length; i += 2) {
                     const node1 = currentNodes[i];
                     const node2 = currentNodes[i + 1];
 
                     if (node1 !== null && node2 !== null) {
-                        const midY = (node1.y + node2.y) / 2;
+                        const midX = (node1.x + node2.x) / 2;
                         const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-                        path.setAttribute("d", `M ${node1.x} ${node1.y} L ${nextX} ${node1.y} L ${nextX} ${node2.y} L ${node2.x} ${node2.y}`);
+                        path.setAttribute("d", `M ${node1.x} ${currentY} L ${node1.x} ${nextY} L ${node2.x} ${nextY} L ${node2.x} ${currentY}`);
                         gridGroup.appendChild(path);
 
-                        nextNodes.push({ x: nextX, y: midY });
+                        nextNodes.push({ x: midX, y: nextY });
                     } else if (node1 !== null || node2 !== null) {
                         const activeNode = (node1 !== null) ? node1 : node2;
                         const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-                        path.setAttribute("d", `M ${activeNode.x} ${activeNode.y} L ${nextX} ${activeNode.y}`);
+                        path.setAttribute("d", `M ${activeNode.x} ${currentY} L ${activeNode.x} ${nextY}`);
                         gridGroup.appendChild(path);
 
-                        nextNodes.push({ x: nextX, y: activeNode.y });
+                        nextNodes.push({ x: activeNode.x, y: nextY });
                     } else {
                         nextNodes.push(null);
                     }
                 }
                 currentNodes = nextNodes;
-                currentX = nextX;
+                currentY = nextY;
             }
 
-            // 決勝戦の右のツノ
+            // 決勝の上の最後の突起線
             if (currentNodes[0] !== null) {
                 const finalNode = currentNodes[0];
                 const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-                path.setAttribute("d", `M ${finalNode.x} ${finalNode.y} L ${finalNode.x + 20} ${finalNode.y}`);
+                path.setAttribute("d", `M ${finalNode.x} ${currentY} L ${finalNode.x} ${currentY - 20}`);
                 gridGroup.appendChild(path);
             }
 
             container.appendChild(svg);
         }
 
-        function drawText(svg, text, x, y) {
+        function drawVerticalText(svg, text, x, y) {
             const textNode = document.createElementNS("http://www.w3.org/2000/svg", "text");
             textNode.setAttribute("x", x);
             textNode.setAttribute("y", y);
