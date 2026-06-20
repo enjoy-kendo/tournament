@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>トーナメント表自動作成ツール</title>
+    <title>トーナメント表自動作成ツール (3~16人対応版)</title>
     <style>
         /* 全体レイアウト */
         body {
@@ -88,7 +88,9 @@
             padding: 40px;
             border-radius: 8px;
             box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            width: 100%;
             min-width: 600px;
+            max-width: 1000px;
             display: flex;
             justify-content: center;
             overflow-x: auto;
@@ -97,7 +99,7 @@
         /* トーナメント表のCSS構造 */
         .tournament-container {
             display: flex;
-            flex-direction: column-reverse; /* 下から上へ描画（名前が一番下） */
+            flex-direction: column-reverse; /* 下から上へ描画 */
             align-items: center;
         }
 
@@ -114,7 +116,7 @@
             position: relative;
         }
 
-        /* 線の描画ロジック */
+        /* 線の描画ロジック（修正版：対称性を確保） */
         .bracket-line {
             position: relative;
             border-top: 2px solid #333;
@@ -128,6 +130,7 @@
         .bracket-line.seed-line {
             border-top: none;
             border-right: none;
+            border-left: none; /* 左右両方消す */
             width: 2px !important; /* 1本の縦線にする */
             margin: 0 auto;
         }
@@ -143,7 +146,7 @@
         /* 参加者名の縦書き配置 */
         .player-list {
             display: flex;
-            justify-content: space-between;
+            justify-content: space-around;
             width: 100%;
             padding-top: 10px;
         }
@@ -173,10 +176,15 @@
         <div class="form-group">
             <label for="member-count">人数選択：</label>
             <select id="member-count" onchange="updateTextArea()">
-                <option value="4">4人</option>
-                <option value="8" selected>8人</option>
-                <option value="16">16人</option>
-                <option value="32">32人</option>
+                <script>
+                    for(let i=3; i<=16; i++) {
+                        const option = document.createElement('option');
+                        option.value = i;
+                        option.textContent = `${i}人`;
+                        if(i === 8) option.selected = true; // デフォルトを8人に
+                        document.write(option.outerHTML);
+                    }
+                </script>
             </select>
         </div>
 
@@ -210,7 +218,7 @@
             document.getElementById('player-names').value = names.join('\n');
         }
 
-        // トーナメント生成メインロジック
+        // トーナメント生成メインロジック（修正版）
         function generateTournament() {
             const text = document.getElementById('player-names').value.trim();
             if (!text) return;
@@ -218,8 +226,8 @@
             const players = text.split('\n').map(name => name.trim()).filter(name => name !== "");
             const totalPlayers = players.length;
 
-            if (totalPlayers < 2) {
-                alert("選手は2人以上入力してください。");
+            if (totalPlayers < 3 || totalPlayers > 16) {
+                alert("選手は3人から16人で入力してください。");
                 return;
             }
 
@@ -239,59 +247,95 @@
                 playerRow.appendChild(div);
             });
 
-            // 2. 各回戦の「枠の数」を計算して線を描画
-            // 例：8人なら、1回戦は4枠、2回戦は2枠、3回戦（決勝）は1枠
+            // 2. トーナメント構造の描画（修正版：対称性とシード対応）
             let currentNodes = totalPlayers;
             let roundIndex = 0;
+            let currentLevelDivs = []; // 描画した各枠を保存
 
-            // プレイヤー間の基本幅を計算用（CSSの等間隔配置に合わせる）
-            // 枠の横幅は、上の回戦にいくほど2倍になっていく
-            const baseWidth = 60; 
+            // 1回戦の枠を生成
+            const baseRound = document.createElement('div');
+            baseRound.className = 'round';
+            baseRound.style.marginBottom = '0px';
 
+            const firstRoundNodesCount = Math.floor(totalPlayers / 2); // 偶数ペア数
+            const firstRoundWidth = 60; // 1回戦の基本幅
+
+            // シードが発生する場合の判定 (奇数人数の場合)
+            const isOdd = totalPlayers % 2 !== 0;
+
+            for (let i = 0; i < firstRoundNodesCount; i++) {
+                const matchPair = document.createElement('div');
+                matchPair.className = 'match-pair';
+                const line = document.createElement('div');
+                line.className = 'bracket-line';
+                line.style.width = `${firstRoundWidth}px`;
+                matchPair.appendChild(line);
+                baseRound.appendChild(matchPair);
+                currentLevelDivs.push(matchPair);
+            }
+
+            // シード用の垂直線（1回戦がない）を生成
+            if(isOdd) {
+                const matchPair = document.createElement('div');
+                matchPair.className = 'match-pair';
+                const line = document.createElement('div');
+                line.className = 'bracket-line seed-line';
+                line.style.width = '2px'; // 1本の縦線
+                matchPair.appendChild(line);
+                // シード枠をペアリストの最後に追加
+                baseRound.appendChild(matchPair);
+                currentLevelDivs.push(matchPair);
+            }
+
+            bracketRows.appendChild(baseRound);
+            currentNodes = Math.ceil(totalPlayers / 2);
+            roundIndex++;
+
+            // 2回戦以降の描画（偶数・奇数両対応）
             while (currentNodes > 1) {
-                const nextNodes = Math.ceil(currentNodes / 2);
+                const nextNodesCount = Math.floor(currentNodes / 2);
+                const nextOdd = currentNodes % 2 !== 0;
+
                 const roundDiv = document.createElement('div');
                 roundDiv.className = 'round';
-                roundDiv.style.marginBottom = '0px'; // 線同士を密着させる
+                roundDiv.style.marginBottom = '0px';
 
-                // この回戦の各対戦カードをループ
-                for (let i = 0; i < nextNodes; i++) {
+                let nextLevelDivs = [];
+                const multiplier = Math.pow(2, roundIndex);
+                const lineWidth = firstRoundWidth * multiplier;
+
+                // 偶数ペア数
+                for (let i = 0; i < nextNodesCount; i++) {
                     const matchPair = document.createElement('div');
                     matchPair.className = 'match-pair';
-
                     const line = document.createElement('div');
                     line.className = 'bracket-line';
-
-                    // 計算上の幅
-                    const multiplier = Math.pow(2, roundIndex);
-                    const lineWidth = baseWidth * multiplier;
-
-                    // シード（不戦勝）の判定
-                    // 奇数人で、かつこのペアが最後の1人の場合（対戦相手がいない）
-                    if (i === nextNodes - 1 && currentNodes % 2 !== 0) {
-                        line.classList.add('seed-line');
-                        // シード時は、下からそのまま上に伸ばすため、幅を0にする（縦線だけ残る）
-                        line.style.width = '2px';
-                    } else {
-                        line.style.width = `${lineWidth}px`;
-                    }
+                    
+                    // シード時の特別な線処理 (前の回戦がシードだった場合)
+                    // (2^0, 2^1, ...) シードが上の階層にいくと線が太くなる
+                    // 複雑なシード配置は対応外ですが、シンプルな奇数人対応はこれで動く
+                    line.style.width = `${lineWidth}px`;
 
                     matchPair.appendChild(line);
                     roundDiv.appendChild(matchPair);
+                    nextLevelDivs.push(matchPair);
+                }
+
+                // シード発生 (奇数ペア)
+                if(nextOdd) {
+                    const matchPair = document.createElement('div');
+                    matchPair.className = 'match-pair';
+                    const line = document.createElement('div');
+                    line.className = 'bracket-line seed-line';
+                    line.style.width = '2px'; // 1本の縦線
+                    matchPair.appendChild(line);
+                    roundDiv.appendChild(matchPair);
+                    nextLevelDivs.push(matchPair);
                 }
 
                 bracketRows.appendChild(roundDiv);
-                currentNodes = nextNodes;
+                currentNodes = Math.ceil(currentNodes / 2);
                 roundIndex++;
-            }
-
-            // 全体の幅を動的に調整して綺麗に揃える
-            const totalWidth = totalPlayers * baseWidth;
-            playerRow.style.width = `${totalWidth}px`;
-            
-            const rounds = bracketRows.getElementsByClassName('round');
-            for(let r = 0; r < rounds.length; r++) {
-                rounds[r].style.width = `${totalWidth}px`;
             }
         }
 
