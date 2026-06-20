@@ -312,7 +312,7 @@
 
                 id="tournament-svg"
 
-                viewBox="0 0 800 750"
+                viewBox="0 0 950 750"
 
                 xmlns="http://www.w3.org/2000/svg">
 
@@ -361,171 +361,407 @@
 
         }
 
-        
-function generateSeedOrder(size) {
-    let seeds = [1, 2];
-    while (seeds.length < size) {
-        const next = [];
-        const total = seeds.length * 2 + 1;
-        for (const s of seeds) {
-            next.push(s);
-            next.push(total - s);
-        }
-        seeds = next;
-    }
-    return seeds;
-}
+        function createTournament() {
 
-function createTournament() {
+            const count = parseInt(select.value);
 
-    const count = parseInt(select.value);
-    const svg = document.getElementById('tournament-svg');
-    const textarea = document.getElementById('names-input');
+            const svg = document.getElementById('tournament-svg');
 
-    svg.innerHTML = '';
+            const textarea = document.getElementById('names-input');
 
-    const lines = textarea.value
-        .split('\\n')
-        .map(line => line.trim())
-        .filter(line => line !== '');
+            svg.innerHTML = '';
 
-    let names = [];
+            const lines = textarea.value
 
-    for (let i = 0; i < count; i++) {
-        names.push(lines[i] || `選手 ${i + 1}`);
-    }
+                .split('\n')
 
-    const width = 800;
-    const paddingX = 60;
-    const usableWidth = width - (paddingX * 2);
+                .map(line => line.trim())
 
-    function drawLine(x1,y1,x2,y2){
-        const line=document.createElementNS("http://www.w3.org/2000/svg","line");
-        line.setAttribute("x1",x1);
-        line.setAttribute("y1",y1);
-        line.setAttribute("x2",x2);
-        line.setAttribute("y2",y2);
-        line.setAttribute("stroke","#000");
-        line.setAttribute("stroke-width","2");
-        svg.appendChild(line);
-    }
+                .filter(line => line !== '');
 
-    function drawSvgVerticalName(x,y,nameText,fontSize,letterSpacing){
-        const text=document.createElementNS("http://www.w3.org/2000/svg","text");
-        text.setAttribute("x",x);
-        text.setAttribute("y",y);
-        text.setAttribute("font-size",fontSize);
-        text.setAttribute("font-weight","bold");
-        text.setAttribute("text-anchor","middle");
-        text.style.writingMode="vertical-rl";
-        text.style.letterSpacing=`${letterSpacing}px`;
-        text.textContent=nameText;
-        svg.appendChild(text);
-    }
+            let names = [];
 
-    const maxRounds=Math.ceil(Math.log2(count));
-    const totalSlots=Math.pow(2,maxRounds);
+            for (let i = 0; i < count; i++) {
 
-    const seedOrder=generateSeedOrder(totalSlots);
-    const slots=[];
+                if (lines[i] !== undefined) {
 
-    for(let i=0;i<totalSlots;i++){
-        const seed=seedOrder[i];
-        slots.push(seed<=count ? names[seed-1] : null);
-    }
+                    names.push(lines[i]);
 
-    const stepX=usableWidth/(totalSlots-1);
+                } else {
 
-    let fullX=[];
-    for(let i=0;i<totalSlots;i++){
-        fullX.push(paddingX+(i*stepX));
-    }
-
-    let yLevels=[300,220,140,70,40,10];
-    if(maxRounds===2){
-        yLevels=[300,220,140,100,100,100];
-    }
-
-    let fontSize=18;
-    let lineBottomY=320;
-    let textTopY=370;
-    let letterSpacing=2;
-
-    if(maxRounds===2){
-        fontSize=38;
-        lineBottomY=330;
-        textTopY=410;
-        letterSpacing=6;
-    }else if(maxRounds===3){
-        fontSize=26;
-        textTopY=385;
-        letterSpacing=4;
-    }
-
-    for(let i=0;i<totalSlots;i++){
-        if(!slots[i]) continue;
-
-        drawSvgVerticalName(
-            fullX[i],
-            textTopY,
-            slots[i],
-            fontSize,
-            letterSpacing
-        );
-    }
-
-    let currentXList=[...fullX];
-
-    for(let r=0;r<maxRounds;r++){
-
-        let nextXList=[];
-        const currentY=yLevels[r];
-        const targetY=yLevels[r+1];
-
-        for(let i=0;i<currentXList.length;i+=2){
-
-            const x1=currentXList[i];
-            const x2=currentXList[i+1];
-            const midX=(x1+x2)/2;
-
-            nextXList.push(midX);
-
-            if(r===0){
-
-                const leftBye=!slots[i];
-                const rightBye=!slots[i+1];
-
-                if(leftBye || rightBye){
-
-                    drawLine(midX,yLevels[2],midX,lineBottomY);
-
-                }else{
-
-                    drawLine(x1,yLevels[1],x1,lineBottomY);
-                    drawLine(x2,yLevels[1],x2,lineBottomY);
-                    drawLine(x1,yLevels[1],x2,yLevels[1]);
-                    drawLine(midX,yLevels[1],midX,yLevels[2]);
+                    names.push(`選手 ${i + 1}`);
 
                 }
 
-            }else{
-
-                drawLine(x1,currentY,x1,targetY);
-                drawLine(x2,currentY,x2,targetY);
-                drawLine(x1,targetY,x2,targetY);
-
-                const nextUpY=yLevels[r+2];
-
-                if(nextUpY!==undefined){
-                    drawLine(midX,targetY,midX,nextUpY);
-                }
             }
+
+            const width = 950;
+
+            const paddingX = 120;
+
+            const usableWidth = width - (paddingX * 2);
+
+            function drawLine(x1, y1, x2, y2) {
+
+                const line = document.createElementNS(
+
+                    "http://www.w3.org/2000/svg",
+
+                    "line"
+
+                );
+
+                line.setAttribute("x1", x1);
+
+                line.setAttribute("y1", y1);
+
+                line.setAttribute("x2", x2);
+
+                line.setAttribute("y2", y2);
+
+                line.setAttribute("stroke", "#000000");
+
+                line.setAttribute("stroke-width", "2");
+
+                line.setAttribute("stroke-linecap", "square");
+
+                svg.appendChild(line);
+
+            }
+
+            function drawSvgVerticalName(
+
+                x,
+
+                y,
+
+                nameText,
+
+                fontSize,
+
+                letterSpacing
+
+            ) {
+
+                const text = document.createElementNS(
+
+                    "http://www.w3.org/2000/svg",
+
+                    "text"
+
+                );
+
+                text.setAttribute("x", x);
+
+                text.setAttribute("y", y);
+
+                text.setAttribute("font-size", fontSize);
+
+                text.setAttribute("font-weight", "bold");
+
+                text.setAttribute("fill", "#1e293b");
+
+                text.setAttribute("text-anchor", "middle");
+
+                text.style.writingMode = "vertical-rl";
+
+                text.style.textCombineUpright = "digits 2";
+
+                text.style.letterSpacing = `${letterSpacing}px`;
+
+                text.textContent = nameText;
+
+                svg.appendChild(text);
+
+            }
+
+            const maxRounds = Math.ceil(Math.log2(count));
+
+            const totalSlots = Math.pow(2, maxRounds);
+
+            const seedCount = totalSlots - count;
+
+            const stepX = usableWidth / (totalSlots - 1);
+
+            let fullX = [];
+
+            for (let i = 0; i < totalSlots; i++) {
+
+                fullX.push(paddingX + (i * stepX));
+
+            }
+
+            let isSeedSlot = Array(totalSlots).fill(false);
+
+            let sPlaced = 0;
+
+            for (let i = totalSlots - 1; i >= 0; i -= 2) {
+
+                if (sPlaced < seedCount) {
+
+                    isSeedSlot[i] = true;
+
+                    sPlaced++;
+
+                }
+
+            }
+
+            let yLevels = [300, 220, 140, 70, 40, 10];
+
+            if (maxRounds === 2) {
+
+                yLevels = [300, 220, 140, 100, 100, 100];
+
+            }
+
+            let playerPositions = [];
+
+            for (let i = 0; i < totalSlots; i += 2) {
+
+                if (isSeedSlot[i + 1]) {
+
+                    playerPositions.push(
+
+                        (fullX[i] + fullX[i + 1]) / 2
+
+                    );
+
+                } else {
+
+                    playerPositions.push(fullX[i]);
+
+                    playerPositions.push(fullX[i + 1]);
+
+                }
+
+            }
+
+            let fontSize = 18;
+
+            let lineBottomY = 320;
+
+            let textTopY = 370;
+
+            let letterSpacing = 2;
+
+            if (maxRounds === 2) {
+
+                fontSize = 38;
+
+                lineBottomY = 330;
+
+                textTopY = 410;
+
+                letterSpacing = 6;
+
+            } else if (maxRounds === 3) {
+
+                fontSize = 26;
+
+                lineBottomY = 325;
+
+                textTopY = 385;
+
+                letterSpacing = 4;
+
+            }
+
+            for (let i = 0; i < count; i++) {
+
+                drawSvgVerticalName(
+
+                    playerPositions[i],
+
+                    textTopY,
+
+                    names[i],
+
+                    fontSize,
+
+                    letterSpacing
+
+                );
+
+            }
+
+            let currentXList = [...fullX];
+
+            for (let r = 0; r < maxRounds; r++) {
+
+                let nextXList = [];
+
+                const currentY = yLevels[r];
+
+                const targetY = yLevels[r + 1];
+
+                for (let i = 0; i < currentXList.length; i += 2) {
+
+                    const x1 = currentXList[i];
+
+                    const x2 = currentXList[i + 1];
+
+                    const midX = (x1 + x2) / 2;
+
+                    nextXList.push(midX);
+
+                    if (r === 0) {
+
+                        if (isSeedSlot[i + 1]) {
+
+                            drawLine(
+
+                                midX,
+
+                                yLevels[2],
+
+                                midX,
+
+                                lineBottomY
+
+                            );
+
+                        } else {
+
+                            drawLine(
+
+                                x1,
+
+                                yLevels[1],
+
+                                x1,
+
+                                lineBottomY
+
+                            );
+
+                            drawLine(
+
+                                x2,
+
+                                yLevels[1],
+
+                                x2,
+
+                                lineBottomY
+
+                            );
+
+                            drawLine(
+
+                                x1,
+
+                                yLevels[1],
+
+                                x2,
+
+                                yLevels[1]
+
+                            );
+
+                            drawLine(
+
+                                midX,
+
+                                yLevels[1],
+
+                                midX,
+
+                                yLevels[2]
+
+                            );
+
+                        }
+
+                    } else {
+
+                        const maxActiveX =
+
+                            playerPositions[count - 1];
+
+                        const minActiveX =
+
+                            playerPositions[0];
+
+                        if (
+
+                            midX >= minActiveX - 10 &&
+
+                            midX <= maxActiveX + 10
+
+                        ) {
+
+                            drawLine(
+
+                                x1,
+
+                                currentY,
+
+                                x1,
+
+                                targetY
+
+                            );
+
+                            drawLine(
+
+                                x2,
+
+                                currentY,
+
+                                x2,
+
+                                targetY
+
+                            );
+
+                            drawLine(
+
+                                x1,
+
+                                targetY,
+
+                                x2,
+
+                                targetY
+
+                            );
+
+                            const nextUpY =
+
+                                yLevels[r + 2];
+
+                            if (
+
+                                nextUpY !== undefined
+
+                            ) {
+
+                                drawLine(
+
+                                    midX,
+
+                                    targetY,
+
+                                    midX,
+
+                                    nextUpY
+
+                                );
+
+                            }
+
+                        }
+
+                    }
+
+                }
+
+                currentXList = nextXList;
+
+            }
+
         }
-
-        currentXList=nextXList;
-    }
-}
-
 
         window.onload = function () {
 
