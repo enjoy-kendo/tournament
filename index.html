@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>トーナメント表自動作成ツール (完全修正版)</title>
+    <title>トーナメント表自動作成ツール (表示位置最適化版)</title>
     <style>
         body {
             font-family: 'Helvetica Neue', Arial, sans-serif;
@@ -17,31 +17,31 @@
 
         .control-panel {
             background: white;
-            padding: 20px;
+            padding: 15px; /* 少しスリムに */
             border-radius: 8px;
             box-shadow: 0 4px 6px rgba(0,0,0,0.05);
             width: 100%;
             max-width: 500px;
-            margin-bottom: 20px;
+            margin-bottom: 10px; /* 余白を縮小 */
             box-sizing: border-box;
         }
 
-        .form-group { margin-bottom: 15px; }
-        label { display: block; font-weight: bold; margin-bottom: 8px; color: #333; }
+        .form-group { margin-bottom: 10px; }
+        label { display: block; font-weight: bold; margin-bottom: 5px; color: #333; }
         select, textarea {
-            width: 100%; padding: 10px; border: 1px solid #ccc;
+            width: 100%; padding: 8px; border: 1px solid #ccc;
             border-radius: 4px; font-size: 14px; box-sizing: border-box;
         }
-        textarea { height: 120px; resize: vertical; }
+        textarea { height: 100px; resize: vertical; }
 
-        .btn-group { display: flex; gap: 10px; margin-top: 15px; }
-        button { flex: 1; padding: 12px; border: none; border-radius: 4px; font-size: 14px; font-weight: bold; cursor: pointer; }
+        .btn-group { display: flex; gap: 10px; margin-top: 10px; }
+        button { flex: 1; padding: 10px; border: none; border-radius: 4px; font-size: 14px; font-weight: bold; cursor: pointer; }
         .btn-create { background-color: #0f1e36; color: white; }
         .btn-print { background-color: #21ba45; color: white; }
 
         .tournament-wrapper {
             background: white;
-            padding: 20px 10px;
+            padding: 10px;
             border-radius: 8px;
             box-shadow: 0 4px 6px rgba(0,0,0,0.05);
             width: 100%;
@@ -130,13 +130,12 @@
             const container = document.getElementById('canvas-container');
             container.innerHTML = '';
 
-            // 1. 基本となるツリーサイズ（最大4階層あれば16人まで綺麗に収まる）
-            const maxRounds = 4; 
             const spacingX = 65;
-            const textSpace = 110;
-            const svgWidth = totalPlayers * spacingX; 
-            const svgHeight = 100 + (maxRounds * 60) + textSpace; 
-            const baseY = svgHeight - textSpace;
+            const textSpace = 100;
+            const svgWidth = totalPlayers * spacingX;
+            // 高さの計算をコンパクトに
+            const svgHeight = 250 + (totalPlayers > 8 ? 60 : 0); 
+            const baseY = 200; // 上の方に表示するための基準座標
 
             const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
             svg.setAttribute("viewBox", `0 0 ${svgWidth} ${svgHeight}`);
@@ -147,15 +146,9 @@
             gridGroup.setAttribute("fill", "none");
             svg.appendChild(gridGroup);
 
-            // 段階ごとのY座標（1回戦の縦線を長くするため、最初の高さをbaseYから離しています）
-            const roundY = [
-                baseY - 75,       // 1回戦の横線（高めに設定して縦線を長く）
-                baseY - 75 - 45,  // 2回戦の横線
-                baseY - 75 - 90,  // 3回戦の横線
-                baseY - 75 - 135  // 4回戦の横線
-            ];
+            // 1回戦の縦線を長くする設定
+            const roundY = [baseY - 70, baseY - 110, baseY - 150, baseY - 190];
 
-            // 2. 初期状態で、選手全員を左から順番に完全に等間隔で並べる
             let currentNodes = [];
             for (let i = 0; i < totalPlayers; i++) {
                 const curX = (i * spacingX) + (spacingX / 2);
@@ -163,16 +156,13 @@
                 currentNodes.push({ x: curX, currentY: baseY });
             }
 
-            // 3. ボトムアップで隣り合うノードをトーナメント戦として結合していく
-            // 奇数人数の場合は、一番右端のノードがそのまま上の階層にスライド（シード）します
             let r = 0;
             while (currentNodes.length > 1) {
                 const nextNodes = [];
-                const targetY = roundY[r] || (currentNodes[0].currentY - 45);
+                const targetY = roundY[r] || (currentNodes[0].currentY - 40);
 
                 for (let i = 0; i < currentNodes.length; i += 2) {
                     if (i + 1 < currentNodes.length) {
-                        // ペアが存在すれば試合の線を結合する
                         const left = currentNodes[i];
                         const right = currentNodes[i+1];
                         const nextX = (left.x + right.x) / 2;
@@ -180,7 +170,6 @@
                         drawPath(gridGroup, `M ${left.x} ${left.currentY} L ${left.x} ${targetY} L ${right.x} ${targetY} L ${right.x} ${right.currentY}`);
                         nextNodes.push({ x: nextX, currentY: targetY });
                     } else {
-                        // ペアがいない余った1人（一番右）は、線を引かずに上の階層へそのままスライド（シード化）
                         nextNodes.push({ x: currentNodes[i].x, currentY: currentNodes[i].currentY });
                     }
                 }
@@ -188,10 +177,9 @@
                 r++;
             }
 
-            // 4. 最後に残った1つのトップ（優勝枠）に中心の短い垂直線を引く
             if (currentNodes.length === 1) {
                 const topNode = currentNodes[0];
-                drawPath(gridGroup, `M ${topNode.x} ${topNode.currentY} L ${topNode.x} ${topNode.currentY - 25}`);
+                drawPath(gridGroup, `M ${topNode.x} ${topNode.currentY} L ${topNode.x} ${topNode.currentY - 20}`);
             }
 
             container.appendChild(svg);
