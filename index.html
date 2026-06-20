@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>トーナメント表自動作成ツール (完全修正版)</title>
+    <title>トーナメント表自動作成ツール (SVG完全版)</title>
     <style>
         /* 全体レイアウト */
         body {
@@ -89,94 +89,18 @@
             border-radius: 8px;
             box-shadow: 0 4px 6px rgba(0,0,0,0.05);
             display: inline-block;
-            overflow-x: auto;
             max-width: 100%;
-            text-align: center;
         }
 
-        .tournament-container {
-            display: inline-flex;
-            flex-direction: column-reverse; /* 下から上へ（名前が一番下） */
-            align-items: center;
-        }
-
-        /* 回戦ごとの行 */
-        .round-row {
-            display: flex;
-            justify-content: center;
-            width: 100%;
-        }
-
-        /* 各対戦カードのコンテナ */
-        .match-box {
-            display: flex;
-            justify-content: center;
-            align-items: flex-end;
-            box-sizing: border-box;
-        }
-
-        /* 「コ」の字の線を表現するブロック */
-        .bracket {
-            box-sizing: border-box;
-            border-top: 2px solid #333;
-            border-left: 2px solid #333;
-            border-right: 2px solid #333;
-            height: 30px;
-            width: 100%;
-            position: relative;
-        }
-
-        /* 次の回戦へ繋ぐ中央のツノ（縦線） */
-        .bracket::after {
-            content: '';
-            position: absolute;
-            top: -22px; /* 上に突き出す */
-            left: 50%;
-            transform: translateX(-50%);
-            width: 2px;
-            height: 20px;
-            background-color: #333;
-        }
-
-        /* シード（不戦勝）の時：横線と両端の縦線を消し、中央の一本線だけにする */
-        .match-box.seed .bracket {
-            border: none;
-        }
-        .match-box.seed .bracket::after {
-            top: -2px;
-            height: 32px; /* 下まで届く一本線にする */
-        }
-
-        /* 最上部（決勝）の上の突起 */
-        .final-top-line {
-            width: 2px;
-            height: 20px;
-            background-color: #333;
-            margin-bottom: 10px;
-        }
-
-        /* 参加者名エリア */
-        .player-row {
-            display: flex;
-            justify-content: center;
-            margin-top: 10px;
-        }
-
-        .player-space {
-            box-sizing: border-box;
-            display: flex;
-            justify-content: center;
-        }
-
-        .player-name {
+        /* SVG内のテキストスタイル（縦書き） */
+        .player-text {
             writing-mode: vertical-rl;
             text-combine-upright: digits 2;
             font-size: 16px;
             font-weight: bold;
             letter-spacing: 2px;
-            text-align: center;
-            white-space: nowrap;
-            padding-top: 5px;
+            dominant-baseline: central;
+            text-anchor: start;
         }
 
         /* 印刷用設定 */
@@ -217,11 +141,7 @@
     </div>
 
     <div class="tournament-wrapper" id="tournament-wrapper" style="display: none;">
-        <div class="tournament-container">
-            <div class="player-row" id="player-row"></div>
-            <div id="bracket-rows"></div>
-            <div class="final-top-line" id="final-line" style="display: none;"></div>
-        </div>
+        <div id="canvas-container"></div>
     </div>
 
     <script>
@@ -235,7 +155,7 @@
             document.getElementById('player-names').value = names.join('\n');
         }
 
-        // トーナメント生成メインロジック
+        // トーナメント生成メインロジック（SVG座標計算方式）
         function generateTournament() {
             const text = document.getElementById('player-names').value.trim();
             if (!text) return;
@@ -248,82 +168,118 @@
                 return;
             }
 
-            // 画面クリアと表示設定
-            const playerRow = document.getElementById('player-row');
-            const bracketRows = document.getElementById('bracket-rows');
-            playerRow.innerHTML = '';
-            bracketRows.innerHTML = '';
             document.getElementById('tournament-wrapper').style.display = 'inline-block';
-            document.getElementById('final-line').style.display = 'block';
+            const container = document.getElementById('canvas-container');
+            container.innerHTML = ''; // 初期化
 
-            // 固定の1人あたりの幅（ここを基準にすべて倍々で綺麗に並べます）
-            const playerWidth = 70; 
+            // --- 描画サイズの設定 ---
+            const playerSpacing = 70; // 選手ごとの横幅の間隔
+            const roundHeight = 45;    // 各回戦の縦幅（線の高さ）
+            const textSpaceHeight = 120; // 名前（縦書き）のための最下部のスペース
+            const topMargin = 30;     // 最上部の余白
 
-            // 1. 最下部の選手名行の生成
-            players.forEach(name => {
-                const space = document.createElement('div');
-                space.className = 'player-space';
-                space.style.width = `${playerWidth}px`;
+            // トーナメントの総階層数を計算
+            const totalRounds = Math.ceil(Math.log2(totalPlayers));
+            
+            // 全体のキャンバスサイズ
+            const svgWidth = totalPlayers * playerSpacing;
+            const svgHeight = topMargin + (totalRounds * roundHeight) + textSpaceHeight;
 
-                const div = document.createElement('div');
-                div.className = 'player-name';
-                div.innerText = name;
+            // SVG要素の作成
+            const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+            svg.setAttribute("width", svgWidth);
+            svg.setAttribute("height", svgHeight);
+
+            // 線のスタイル一括用グループ
+            const gridGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
+            gridGroup.setAttribute("stroke", "#333");
+            gridGroup.setAttribute("stroke-width", "2");
+            gridGroup.setAttribute("fill", "none");
+            svg.appendChild(gridGroup);
+
+            // 1. 各選手の初期位置（最下部）のX座標リストを作製
+            // 最初の段階では各ノードが「一本の垂直線の上端座標」を持っている状態にする
+            let currentNodes = [];
+            const baseY = svgHeight - textSpaceHeight; // 線の開始位置（下端）
+
+            for (let i = 0; i < totalPlayers; i++) {
+                // 各選手の中心X座標
+                const x = (i * playerSpacing) + (playerSpacing / 2);
                 
-                space.appendChild(div);
-                playerRow.appendChild(space);
-            });
+                // 選手名（縦書き）の追加
+                const textNode = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                textNode.setAttribute("x", x);
+                textNode.setAttribute("y", baseY + 10);
+                textNode.setAttribute("class", "player-text");
+                textNode.textContent = players[i];
+                svg.appendChild(textNode);
 
-            // 2. 線（トーナメント）の階層を描画
-            let currentNodes = totalPlayers;
-            let roundIndex = 0;
+                // 初期ノード位置の記録（最初は名前のすぐ上）
+                currentNodes.push({ x: x, y: baseY });
+            }
 
-            // 1つの回戦（行）が、次の回戦でどう統合されるかをシミュレートしながら描画
-            while (currentNodes > 1) {
-                const roundRow = document.createElement('div');
-                roundRow.className = 'round-row';
-                
-                // この階層における「1つの対戦枠」がカバーすべき横幅
-                // 1回戦=playerWidth*2, 2回戦=playerWidth*4, 3回戦=playerWidth*8 ...
-                const matchBoxWidth = playerWidth * Math.pow(2, roundIndex + 1);
+            // 2. 階層を1つずつ上に上がっていく座標計算
+            let currentY = baseY;
 
-                // 現在のノード数から、次の回戦に作る枠数を計算
-                const nextNodes = Math.ceil(currentNodes / 2);
-                const isOdd = currentNodes % 2 !== 0;
+            while (currentNodes.length > 1) {
+                const nextNodes = [];
+                const nextY = currentY - roundHeight;
 
-                for (let i = 0; i < nextNodes; i++) {
-                    const matchBox = document.createElement('div');
-                    matchBox.className = 'match-box';
-                    
-                    // シード（不戦勝）の判定：奇数かつ最後の1つの枠
-                    if (isOdd && i === nextNodes - 1) {
-                        matchBox.classList.add('seed');
-                        // シード枠は半分（1人分）の幅で直進させる
-                        matchBox.style.width = `${matchBoxWidth / 2}px`;
-                    } else {
-                        matchBox.style.width = `${matchBoxWidth}px`;
+                for (let i = 0; i < currentNodes.length; i += 2) {
+                    // 対戦相手（ペア）がいる場合
+                    if (i + 1 < currentNodes.length) {
+                        const node1 = currentNodes[i];
+                        const node2 = currentNodes[i + 1];
+
+                        // 中間のX座標（これが次の回戦の結合点になる）
+                        const midX = (node1.x + node2.x) / 2;
+
+                        // 線の描画:
+                        // 1. node1から上に伸ばす
+                        // 2. node2から上に伸ばす
+                        // 3. 2つの上端を横線でつなぐ
+                        // 4. 中央からさらに少し上にツノを出す
+                        const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                        path.setAttribute("d", `
+                            M ${node1.x} ${currentY} 
+                            L ${node1.x} ${nextY} 
+                            L ${node2.x} ${nextY} 
+                            L ${node2.x} ${currentY}
+                            M ${midX} ${nextY}
+                            L ${midX} ${nextY}
+                        `);
+                        gridGroup.appendChild(path);
+
+                        // 次の階層の基準点を登録
+                        nextNodes.push({ x: midX, y: nextY });
+                    } 
+                    // 対戦相手がいない場合（シード・不戦勝）
+                    else {
+                        const node = currentNodes[i];
+                        
+                        // 横線を作らず、そのまま上にまっすぐ線を伸ばす（ご要望の挙動）
+                        const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                        path.setAttribute("d", `M ${node.x} ${currentY} L ${node.x} ${nextY}`);
+                        gridGroup.appendChild(path);
+
+                        // X座標をそのまま引き継いで次の階層に登録
+                        nextNodes.push({ x: node.x, y: nextY });
                     }
-
-                    const bracket = document.createElement('div');
-                    bracket.className = 'bracket';
-
-                    // 1回戦の通常の対戦以外は、ツノ（中央縦線）と下の線の位置を合わせるため
-                    // 左右に適切なマージンを持たせて、綺麗に中央でドッキングさせます
-                    if (roundIndex > 0) {
-                        // 2回戦以降の微調整（デザインを完全に左右対称にロックする）
-                        bracket.style.width = '100%';
-                    }
-
-                    matchBox.appendChild(bracket);
-                    roundRow.appendChild(matchBox);
                 }
 
-                // 前の回戦の上に重ねるように追加
-                bracketRows.appendChild(roundRow);
-
-                // 次のループへの準備
                 currentNodes = nextNodes;
-                roundIndex++;
+                currentY = nextY;
             }
+
+            // 3. 最上部（決勝）の上の最後の突起線
+            if (currentNodes.length === 1) {
+                const finalNode = currentNodes[0];
+                const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                path.setAttribute("d", `M ${finalNode.x} ${currentY} L ${finalNode.x} ${currentY - 20}`);
+                gridGroup.appendChild(path);
+            }
+
+            container.appendChild(svg);
         }
 
         // ページ読み込み時に初期実行
