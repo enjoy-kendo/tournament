@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>トーナメント表自動作成ツール (表示位置・名前切れ完全修正版)</title>
+    <title>トーナメント表自動作成ツール (余白最小化版)</title>
     <style>
         body {
             font-family: 'Helvetica Neue', Arial, sans-serif;
             background-color: #f0f4f8;
             margin: 0;
-            padding: 10px;
+            padding: 5px;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -17,36 +17,21 @@
 
         .control-panel {
             background: white;
-            padding: 15px;
+            padding: 10px;
             border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
             width: 100%;
             max-width: 500px;
-            margin-bottom: 10px;
-            box-sizing: border-box;
+            margin-bottom: 5px;
         }
-
-        .form-group { margin-bottom: 10px; }
-        label { display: block; font-weight: bold; margin-bottom: 5px; color: #333; }
-        select, textarea {
-            width: 100%; padding: 8px; border: 1px solid #ccc;
-            border-radius: 4px; font-size: 14px; box-sizing: border-box;
-        }
-        textarea { height: 100px; resize: vertical; }
-
-        .btn-group { display: flex; gap: 10px; margin-top: 10px; }
-        button { flex: 1; padding: 10px; border: none; border-radius: 4px; font-size: 14px; font-weight: bold; cursor: pointer; }
-        .btn-create { background-color: #0f1e36; color: white; }
-        .btn-print { background-color: #21ba45; color: white; }
 
         .tournament-wrapper {
             background: white;
-            padding: 10px;
+            padding: 5px;
             border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
             width: 100%;
             max-width: 1100px;
-            box-sizing: border-box;
             text-align: center;
         }
 
@@ -58,46 +43,30 @@
             text-combine-upright: digits 2;
             font-size: 14px;
             font-weight: bold;
-            letter-spacing: 2px;
+            letter-spacing: 1px;
             dominant-baseline: central;
             text-anchor: start;
             fill: #333;
-        }
-
-        @media print {
-            body { background: white; padding: 0; }
-            .control-panel { display: none; }
-            .tournament-wrapper { box-shadow: none; padding: 0; max-width: 100%; }
         }
     </style>
 </head>
 <body>
 
     <div class="control-panel">
-        <div class="form-group">
-            <label for="member-count">人数選択：</label>
-            <select id="member-count" onchange="updateTextArea()">
-                <script>
-                    for(let i = 3; i <= 16; i++) {
-                        const option = document.createElement('option');
-                        option.value = i;
-                        option.textContent = `${i}人`;
-                        if(i === 5) option.selected = true; 
-                        document.write(option.outerHTML);
-                    }
-                </script>
-            </select>
-        </div>
-
-        <div class="form-group">
-            <label for="player-names">参加者名（改行区切り）：</label>
-            <textarea id="player-names"></textarea>
-        </div>
-
-        <div class="btn-group">
-            <button class="btn-create" onclick="generateTournament()">トーナメント表を作成</button>
-            <button class="btn-print" onclick="window.print()">印刷する</button>
-        </div>
+        <label>人数：</label>
+        <select id="member-count" onchange="updateTextArea()">
+            <script>
+                for(let i = 3; i <= 16; i++) {
+                    const option = document.createElement('option');
+                    option.value = i; option.textContent = `${i}人`;
+                    if(i === 5) option.selected = true;
+                    document.write(option.outerHTML);
+                }
+            </script>
+        </select>
+        <button onclick="generateTournament()">作成</button>
+        <button onclick="window.print()">印刷</button>
+        <textarea id="player-names" style="width:100%; height:60px; margin-top:5px;"></textarea>
     </div>
 
     <div class="tournament-wrapper" id="tournament-wrapper" style="display: none;">
@@ -108,98 +77,64 @@
         function updateTextArea() {
             const count = parseInt(document.getElementById('member-count').value);
             let names = [];
-            for (let i = 1; i <= count; i++) {
-                names.push(`選手 ${i}`);
-            }
+            for (let i = 1; i <= count; i++) names.push(`選手 ${i}`);
             document.getElementById('player-names').value = names.join('\n');
         }
 
         function generateTournament() {
-            const text = document.getElementById('player-names').value.trim();
-            if (!text) return;
-
-            const players = text.split('\n').map(name => name.trim()).filter(name => name !== "");
+            const players = document.getElementById('player-names').value.trim().split('\n').filter(n => n.trim() !== "");
             const totalPlayers = players.length;
-
-            if (totalPlayers < 3 || totalPlayers > 16) {
-                alert("選手は3人から16人で入力してください。");
-                return;
-            }
-
             document.getElementById('tournament-wrapper').style.display = 'block';
             const container = document.getElementById('canvas-container');
             container.innerHTML = '';
 
-            const spacingX = 65;
+            const spacingX = 60;
             const svgWidth = totalPlayers * spacingX;
-            // 選手名のテキスト長を考慮して高さを十分に確保
-            const svgHeight = 400; 
-            const baseY = 250; // テキストが切れないよう、基準線を十分に下げる
+            // 【修正】高さを必要最小限に抑え、余白を極限までカット
+            const svgHeight = 220; 
+            const baseY = 160; 
 
             const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
             svg.setAttribute("viewBox", `0 0 ${svgWidth} ${svgHeight}`);
 
-            const gridGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
-            gridGroup.setAttribute("stroke", "#333");
-            gridGroup.setAttribute("stroke-width", "2");
-            gridGroup.setAttribute("fill", "none");
-            svg.appendChild(gridGroup);
-
-            // 1回戦の縦線が長く、かつ画面内に収まる高さ調整
-            const roundY = [baseY - 70, baseY - 110, baseY - 150, baseY - 190];
+            // 1回戦の縦線を長くしつつ、上の余白を詰める
+            const roundY = [baseY - 60, baseY - 90, baseY - 120, baseY - 150];
 
             let currentNodes = [];
             for (let i = 0; i < totalPlayers; i++) {
                 const curX = (i * spacingX) + (spacingX / 2);
-                // 選手名を描画（Y座標をbaseY+10に固定し、枠内に収める）
-                drawVerticalText(svg, players[i], curX, baseY + 10);
+                const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                text.setAttribute("x", curX); text.setAttribute("y", baseY + 5);
+                text.setAttribute("class", "player-text");
+                text.textContent = players[i];
+                svg.appendChild(text);
                 currentNodes.push({ x: curX, currentY: baseY });
             }
 
             let r = 0;
+            const gridGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
+            gridGroup.setAttribute("stroke", "#333"); gridGroup.setAttribute("stroke-width", "2"); gridGroup.setAttribute("fill", "none");
+            svg.appendChild(gridGroup);
+
             while (currentNodes.length > 1) {
                 const nextNodes = [];
-                const targetY = roundY[r] || (currentNodes[0].currentY - 40);
-
+                const targetY = roundY[r] || (currentNodes[0].currentY - 30);
                 for (let i = 0; i < currentNodes.length; i += 2) {
                     if (i + 1 < currentNodes.length) {
-                        const left = currentNodes[i];
-                        const right = currentNodes[i+1];
-                        const nextX = (left.x + right.x) / 2;
-
-                        drawPath(gridGroup, `M ${left.x} ${left.currentY} L ${left.x} ${targetY} L ${right.x} ${targetY} L ${right.x} ${right.currentY}`);
-                        nextNodes.push({ x: nextX, currentY: targetY });
+                        const l = currentNodes[i], res = currentNodes[i+1];
+                        const midX = (l.x + res.x) / 2;
+                        const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                        path.setAttribute("d", `M ${l.x} ${l.currentY} L ${l.x} ${targetY} L ${res.x} ${targetY} L ${res.x} ${res.currentY}`);
+                        gridGroup.appendChild(path);
+                        nextNodes.push({ x: midX, currentY: targetY });
                     } else {
                         nextNodes.push({ x: currentNodes[i].x, currentY: currentNodes[i].currentY });
                     }
                 }
-                currentNodes = nextNodes;
-                r++;
+                currentNodes = nextNodes; r++;
             }
-
-            if (currentNodes.length === 1) {
-                const topNode = currentNodes[0];
-                drawPath(gridGroup, `M ${topNode.x} ${topNode.currentY} L ${topNode.x} ${topNode.currentY - 20}`);
-            }
-
             container.appendChild(svg);
         }
-
-        function drawPath(parent, d) {
-            const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-            path.setAttribute("d", d);
-            parent.appendChild(path);
-        }
-
-        function drawVerticalText(svg, text, x, y) {
-            const textNode = document.createElementNS("http://www.w3.org/2000/svg", "text");
-            textNode.setAttribute("x", x);
-            textNode.setAttribute("y", y);
-            textNode.setAttribute("class", "player-text");
-            textNode.textContent = text;
-            svg.appendChild(textNode);
-        }
-
         updateTextArea();
     </script>
 </body>
