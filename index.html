@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>トーナメント表自動作成ツール (3~16人対応版)</title>
+    <title>トーナメント表自動作成ツール (完全修正版)</title>
     <style>
         /* 全体レイアウト */
         body {
@@ -16,7 +16,7 @@
             align-items: center;
         }
 
-        /* 入力フォームのコンテナ（印刷時は非表示） */
+        /* 入力フォーム（印刷時は非表示） */
         .control-panel {
             background: white;
             padding: 25px;
@@ -88,67 +88,84 @@
             padding: 40px;
             border-radius: 8px;
             box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-            width: 100%;
-            min-width: 600px;
-            max-width: 1000px;
-            display: flex;
-            justify-content: center;
+            display: inline-block;
             overflow-x: auto;
+            max-width: 100%;
+            text-align: center;
         }
 
-        /* トーナメント表のCSS構造 */
         .tournament-container {
-            display: flex;
-            flex-direction: column-reverse; /* 下から上へ描画 */
+            display: inline-flex;
+            flex-direction: column-reverse; /* 下から上へ（名前が一番下） */
             align-items: center;
         }
 
-        .round {
-            display: flex;
-            justify-content: space-around;
-            width: 100%;
-            margin-bottom: 20px;
-        }
-
-        .match-pair {
+        /* 回戦ごとの行 */
+        .round-row {
             display: flex;
             justify-content: center;
-            position: relative;
+            width: 100%;
         }
 
-        /* 線の描画ロジック（修正版：対称性を確保） */
-        .bracket-line {
-            position: relative;
+        /* 各対戦カードのコンテナ */
+        .match-box {
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+            box-sizing: border-box;
+        }
+
+        /* 「コ」の字の線を表現するブロック */
+        .bracket {
+            box-sizing: border-box;
             border-top: 2px solid #333;
             border-left: 2px solid #333;
             border-right: 2px solid #333;
             height: 30px;
-            box-sizing: border-box;
+            width: 100%;
+            position: relative;
         }
 
-        /* シード（不戦勝）の時は、横線を消して中央の縦線だけにする */
-        .bracket-line.seed-line {
-            border-top: none;
-            border-right: none;
-            border-left: none; /* 左右両方消す */
-            width: 2px !important; /* 1本の縦線にする */
-            margin: 0 auto;
+        /* 次の回戦へ繋ぐ中央のツノ（縦線） */
+        .bracket::after {
+            content: '';
+            position: absolute;
+            top: -22px; /* 上に突き出す */
+            left: 50%;
+            transform: translateX(-50%);
+            width: 2px;
+            height: 20px;
+            background-color: #333;
         }
 
-        /* 最上部の決勝戦の上の突起 */
+        /* シード（不戦勝）の時：横線と両端の縦線を消し、中央の一本線だけにする */
+        .match-box.seed .bracket {
+            border: none;
+        }
+        .match-box.seed .bracket::after {
+            top: -2px;
+            height: 32px; /* 下まで届く一本線にする */
+        }
+
+        /* 最上部（決勝）の上の突起 */
         .final-top-line {
             width: 2px;
             height: 20px;
             background-color: #333;
-            margin: 0 auto;
+            margin-bottom: 10px;
         }
 
-        /* 参加者名の縦書き配置 */
-        .player-list {
+        /* 参加者名エリア */
+        .player-row {
             display: flex;
-            justify-content: space-around;
-            width: 100%;
-            padding-top: 10px;
+            justify-content: center;
+            margin-top: 10px;
+        }
+
+        .player-space {
+            box-sizing: border-box;
+            display: flex;
+            justify-content: center;
         }
 
         .player-name {
@@ -158,8 +175,8 @@
             font-weight: bold;
             letter-spacing: 2px;
             text-align: center;
-            width: 30px;
             white-space: nowrap;
+            padding-top: 5px;
         }
 
         /* 印刷用設定 */
@@ -177,11 +194,11 @@
             <label for="member-count">人数選択：</label>
             <select id="member-count" onchange="updateTextArea()">
                 <script>
-                    for(let i=3; i<=16; i++) {
+                    for(let i = 3; i <= 16; i++) {
                         const option = document.createElement('option');
                         option.value = i;
                         option.textContent = `${i}人`;
-                        if(i === 8) option.selected = true; // デフォルトを8人に
+                        if(i === 8) option.selected = true;
                         document.write(option.outerHTML);
                     }
                 </script>
@@ -201,14 +218,14 @@
 
     <div class="tournament-wrapper" id="tournament-wrapper" style="display: none;">
         <div class="tournament-container">
-            <div class="player-list" id="player-row"></div>
+            <div class="player-row" id="player-row"></div>
             <div id="bracket-rows"></div>
             <div class="final-top-line" id="final-line" style="display: none;"></div>
         </div>
     </div>
 
     <script>
-        // 初期化：選択された人数に合わせて初期テキストをセット
+        // 選択された人数に合わせて初期テキストをセット
         function updateTextArea() {
             const count = parseInt(document.getElementById('member-count').value);
             let names = [];
@@ -218,7 +235,7 @@
             document.getElementById('player-names').value = names.join('\n');
         }
 
-        // トーナメント生成メインロジック（修正版）
+        // トーナメント生成メインロジック
         function generateTournament() {
             const text = document.getElementById('player-names').value.trim();
             if (!text) return;
@@ -231,110 +248,80 @@
                 return;
             }
 
-            // 表示エリアをクリア＆可視化
+            // 画面クリアと表示設定
             const playerRow = document.getElementById('player-row');
             const bracketRows = document.getElementById('bracket-rows');
             playerRow.innerHTML = '';
             bracketRows.innerHTML = '';
-            document.getElementById('tournament-wrapper').style.display = 'flex';
+            document.getElementById('tournament-wrapper').style.display = 'inline-block';
             document.getElementById('final-line').style.display = 'block';
 
-            // 1. 選手名の行を生成 (縦書き)
+            // 固定の1人あたりの幅（ここを基準にすべて倍々で綺麗に並べます）
+            const playerWidth = 70; 
+
+            // 1. 最下部の選手名行の生成
             players.forEach(name => {
+                const space = document.createElement('div');
+                space.className = 'player-space';
+                space.style.width = `${playerWidth}px`;
+
                 const div = document.createElement('div');
                 div.className = 'player-name';
                 div.innerText = name;
-                playerRow.appendChild(div);
+                
+                space.appendChild(div);
+                playerRow.appendChild(space);
             });
 
-            // 2. トーナメント構造の描画（修正版：対称性とシード対応）
+            // 2. 線（トーナメント）の階層を描画
             let currentNodes = totalPlayers;
             let roundIndex = 0;
-            let currentLevelDivs = []; // 描画した各枠を保存
 
-            // 1回戦の枠を生成
-            const baseRound = document.createElement('div');
-            baseRound.className = 'round';
-            baseRound.style.marginBottom = '0px';
-
-            const firstRoundNodesCount = Math.floor(totalPlayers / 2); // 偶数ペア数
-            const firstRoundWidth = 60; // 1回戦の基本幅
-
-            // シードが発生する場合の判定 (奇数人数の場合)
-            const isOdd = totalPlayers % 2 !== 0;
-
-            for (let i = 0; i < firstRoundNodesCount; i++) {
-                const matchPair = document.createElement('div');
-                matchPair.className = 'match-pair';
-                const line = document.createElement('div');
-                line.className = 'bracket-line';
-                line.style.width = `${firstRoundWidth}px`;
-                matchPair.appendChild(line);
-                baseRound.appendChild(matchPair);
-                currentLevelDivs.push(matchPair);
-            }
-
-            // シード用の垂直線（1回戦がない）を生成
-            if(isOdd) {
-                const matchPair = document.createElement('div');
-                matchPair.className = 'match-pair';
-                const line = document.createElement('div');
-                line.className = 'bracket-line seed-line';
-                line.style.width = '2px'; // 1本の縦線
-                matchPair.appendChild(line);
-                // シード枠をペアリストの最後に追加
-                baseRound.appendChild(matchPair);
-                currentLevelDivs.push(matchPair);
-            }
-
-            bracketRows.appendChild(baseRound);
-            currentNodes = Math.ceil(totalPlayers / 2);
-            roundIndex++;
-
-            // 2回戦以降の描画（偶数・奇数両対応）
+            // 1つの回戦（行）が、次の回戦でどう統合されるかをシミュレートしながら描画
             while (currentNodes > 1) {
-                const nextNodesCount = Math.floor(currentNodes / 2);
-                const nextOdd = currentNodes % 2 !== 0;
+                const roundRow = document.createElement('div');
+                roundRow.className = 'round-row';
+                
+                // この階層における「1つの対戦枠」がカバーすべき横幅
+                // 1回戦=playerWidth*2, 2回戦=playerWidth*4, 3回戦=playerWidth*8 ...
+                const matchBoxWidth = playerWidth * Math.pow(2, roundIndex + 1);
 
-                const roundDiv = document.createElement('div');
-                roundDiv.className = 'round';
-                roundDiv.style.marginBottom = '0px';
+                // 現在のノード数から、次の回戦に作る枠数を計算
+                const nextNodes = Math.ceil(currentNodes / 2);
+                const isOdd = currentNodes % 2 !== 0;
 
-                let nextLevelDivs = [];
-                const multiplier = Math.pow(2, roundIndex);
-                const lineWidth = firstRoundWidth * multiplier;
-
-                // 偶数ペア数
-                for (let i = 0; i < nextNodesCount; i++) {
-                    const matchPair = document.createElement('div');
-                    matchPair.className = 'match-pair';
-                    const line = document.createElement('div');
-                    line.className = 'bracket-line';
+                for (let i = 0; i < nextNodes; i++) {
+                    const matchBox = document.createElement('div');
+                    matchBox.className = 'match-box';
                     
-                    // シード時の特別な線処理 (前の回戦がシードだった場合)
-                    // (2^0, 2^1, ...) シードが上の階層にいくと線が太くなる
-                    // 複雑なシード配置は対応外ですが、シンプルな奇数人対応はこれで動く
-                    line.style.width = `${lineWidth}px`;
+                    // シード（不戦勝）の判定：奇数かつ最後の1つの枠
+                    if (isOdd && i === nextNodes - 1) {
+                        matchBox.classList.add('seed');
+                        // シード枠は半分（1人分）の幅で直進させる
+                        matchBox.style.width = `${matchBoxWidth / 2}px`;
+                    } else {
+                        matchBox.style.width = `${matchBoxWidth}px`;
+                    }
 
-                    matchPair.appendChild(line);
-                    roundDiv.appendChild(matchPair);
-                    nextLevelDivs.push(matchPair);
+                    const bracket = document.createElement('div');
+                    bracket.className = 'bracket';
+
+                    // 1回戦の通常の対戦以外は、ツノ（中央縦線）と下の線の位置を合わせるため
+                    // 左右に適切なマージンを持たせて、綺麗に中央でドッキングさせます
+                    if (roundIndex > 0) {
+                        // 2回戦以降の微調整（デザインを完全に左右対称にロックする）
+                        bracket.style.width = '100%';
+                    }
+
+                    matchBox.appendChild(bracket);
+                    roundRow.appendChild(matchBox);
                 }
 
-                // シード発生 (奇数ペア)
-                if(nextOdd) {
-                    const matchPair = document.createElement('div');
-                    matchPair.className = 'match-pair';
-                    const line = document.createElement('div');
-                    line.className = 'bracket-line seed-line';
-                    line.style.width = '2px'; // 1本の縦線
-                    matchPair.appendChild(line);
-                    roundDiv.appendChild(matchPair);
-                    nextLevelDivs.push(matchPair);
-                }
+                // 前の回戦の上に重ねるように追加
+                bracketRows.appendChild(roundRow);
 
-                bracketRows.appendChild(roundDiv);
-                currentNodes = Math.ceil(currentNodes / 2);
+                // 次のループへの準備
+                currentNodes = nextNodes;
                 roundIndex++;
             }
         }
