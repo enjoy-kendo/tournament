@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>トーナメント表自動作成ツール (確定版)</title>
+    <title>トーナメント表自動作成ツール (完全固定版)</title>
     <style>
         body {
             font-family: 'Helvetica Neue', Arial, sans-serif;
@@ -45,7 +45,7 @@
             border-radius: 8px;
             box-shadow: 0 4px 6px rgba(0,0,0,0.05);
             width: 100%;
-            max-width: 800px;
+            max-width: 900px;
             box-sizing: border-box;
             text-align: center;
         }
@@ -114,44 +114,80 @@
             document.getElementById('player-names').value = names.join('\n');
         }
 
-        // 5人〜16人すべての人数で「完璧に不公平のない配置」を完全に固定定義
-        const PERFECT_LAYOUTS = {
-            3:  [ ["選手 1", "選手 2"], "選手 3" ],
-            4:  [ ["選手 1", "選手 2"], ["選手 3", "選手 4"] ],
-            // 5人：ご提示いただいた「左に2人、右に3人（1試合＋1シード）」の形そのもの
-            5:  [ ["選手 1", "選手 2"], [ "選手 3", ["選手 4", "選手 5"] ] ],
-            // 6人：左に3人（1試合＋1シード）、右に3人（1試合＋1シード）の完全な左右対称
-            6:  [ [ "選手 1", ["選手 2", "選手 3"] ], [ "選手 4", ["選手 5", "選手 6"] ] ],
-            7:  [ [ ["選手 1", "選手 2"], ["選手 3", "選手 4"] ], [ "選手 5", ["選手 6", "選手 7"] ] ],
-            8:  [ [ ["選手 1", "選手 2"], ["選手 3", "選手 4"] ], [ ["選手 5", "選手 6"], ["選手 7", "選手 8"] ] ],
-            9:  [ [ ["選手 1", "選手 2"], ["選手 3", "選手 4"] ], [ ["選手 5", "選手 6"], [ "選手 7", ["選手 8", "選手 9"] ] ] ],
-            10: [ [ ["選手 1", "選手 2"], [ "選手 3", ["選手 4", "選手 5"] ] ], [ ["選手 6", "選手 7"], [ "選手 8", ["選手 9", "選手 10"] ] ] ],
-            11: [ [ [ "選手 1", ["選手 2", "選手 3"] ], [ "選手 4", ["選手 5", "選手 6"] ] ], [ ["選手 7", "選手 8"], [ "選手 9", ["選手 10", "選手 11"] ] ] ],
-            12: [ [ [ "選手 1", ["選手 2", "選手 3"] ], [ "選手 4", ["選手 5", "選手 6"] ] ], [ [ "選手 7", ["選手 8", "選手 9"] ], [ "選手 10", ["選手 11", "選手 12"] ] ] ],
-            13: [ [ [["選手 1", "選手 2"], ["選手 3", "選手 4"] ], [ "選手 5", ["選手 6", "選手 7"] ] ], [ [ "選手 8", ["選手 9", "選手 10"] ], [ "選手 11", ["選手 12", "選手 13"] ] ] ],
-            14: [ [ [["選手 1", "選手 2"], ["選手 3", "選手 4"] ], [ ["選手 5", "選手 6"], ["選手 7", "選手 8"] ] ], [ [ "選手 9", ["選手 10", "選手 11"] ], [ "選手 12", ["選手 13", "選手 14"] ] ] ],
-            15: [ [ [["選手 1", "選手 2"], ["選手 3", "選手 4"] ], [ ["選手 5", "選手 6"], ["選手 7", "選手 8"] ] ], [ [ ["選手 9", "選手 10"], ["選手 11", "選手 12"] ], [ "選手 13", ["選手 14", "選手 15"] ] ] ],
-            16: [ [ [["選手 1", "選手 2"], ["選手 3", "選手 4"] ], [ ["選手 5", "選手 6"], ["選手 7", "選手 8"] ] ], [ [ ["選手 9", "選手 10"], ["選手 11", "選手 12"] ], [ ["選手 13", "選手 14"], ["選手 15", "選手 16"] ] ] ]
+        // 人数ごとに「名前の並び順」と「トーナメントの木構造」を完全に独立して定義
+        // ※ 0, 1, 2... は、入力された名前のインデックス（上から何番目か）を表します
+        const TOURNAMENT_DESIGNS = {
+            3: {
+                slots: [0, 1, 2],
+                tree: [ [0, 1], 2 ],
+                heights: 2
+            },
+            4: {
+                slots: [0, 1, 2, 3],
+                tree: [ [0, 1], [2, 3] ],
+                heights: 2
+            },
+            5: {
+                slots: [0, 1, 2, 3, 4],
+                tree: [ [0, 1], [2, [3, 4]] ],
+                heights: 3
+            },
+            6: {
+                slots: [0, 1, 2, 3, 4, 5],
+                tree: [ [0, [1, 2]], [3, [4, 5]] ],
+                heights: 3
+            },
+            7: {
+                slots: [0, 1, 2, 3, 4, 5, 6],
+                tree: [ [[0, 1], [2, 3]], [4, [5, 6]] ],
+                heights: 3
+            },
+            8: {
+                slots: [0, 1, 2, 3, 4, 5, 6, 7],
+                tree: [ [[0, 1], [2, 3]], [[4, 5], [6, 7]] ],
+                heights: 3
+            },
+            9: {
+                slots: [0, 1, 2, 3, 4, 5, 6, 7, 8],
+                tree: [ [[0, 1], [2, 3]], [[4, 5], [6, [7, 8]]] ],
+                heights: 4
+            },
+            10: {
+                slots: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+                tree: [ [[0, 1], [2, [3, 4]]], [[5, 6], [7, [8, 9]]] ],
+                heights: 4
+            },
+            11: {
+                slots: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+                tree: [ [[0, [1, 2]], [3, [4, 5]]], [[6, 7], [8, [9, 10]]] ],
+                heights: 4
+            },
+            12: {
+                slots: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+                tree: [ [[0, [1, 2]], [3, [4, 5]]], [[6, [7, 8]], [9, [10, 11]]] ],
+                heights: 4
+            },
+            13: {
+                slots: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+                tree: [ [[[0, 1], [2, 3]], [4, [5, 6]]], [[7, [8, 9]], [10, [11, 12]]] ],
+                heights: 4
+            },
+            14: {
+                slots: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13],
+                tree: [ [[[0, 1], [2, 3]], [[4, 5], [6, 7]]], [[8, [9, 10]], [11, [12, 13]]] ],
+                heights: 4
+            },
+            15: {
+                slots: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14],
+                tree: [ [[[0, 1], [2, 3]], [[4, 5], [6, 7]]], [[[8, 9], [10, 11]], [12, [13, 14]]] ],
+                heights: 4
+            },
+            16: {
+                slots: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
+                tree: [ [[[0, 1], [2, 3]], [[4, 5], [6, 7]]], [[[8, 9], [10, 11]], [[12, 13], [14, 15]]] ],
+                heights: 4
+            }
         };
-
-        // ユーザーがカスタム入力した名前を、定義した構造に流し込む関数
-        function remapLayout(layout, playerList, indexRef) {
-            if (typeof layout === 'string') {
-                return playerList[indexRef.count++] || "";
-            }
-            return [
-                remapLayout(layout[0], playerList, indexRef),
-                remapLayout(layout[1], playerList, indexRef)
-            ];
-        }
-
-        // トーナメントの木構造から、末端の「描画上の列（レーン）」を平坦な配列として抽出する関数
-        function getLeaves(node) {
-            if (typeof node === 'string') {
-                return [node];
-            }
-            return [...getLeaves(node[0]), ...getLeaves(node[1])];
-        }
 
         function generateTournament() {
             const text = document.getElementById('player-names').value.trim();
@@ -169,29 +205,25 @@
             const container = document.getElementById('canvas-container');
             container.innerHTML = '';
 
-            // 1. 人数に応じたベース設計図を取得し、実際の名前を流し込む
-            const baseLayout = PERFECT_LAYOUTS[totalPlayers];
-            const finalLayout = remapLayout(baseLayout, players, { count: 0 });
+            // その人数専用の設計図をロード
+            const design = TOURNAMENT_DESIGNS[totalPlayers];
+            
+            // 底辺の並び順（レーン数）を計算
+            function flatten(node) {
+                if (typeof node === 'number') return [node];
+                return [...flatten(node[0]), ...flatten(node[1])];
+            }
+            const leafIndices = flatten(design.tree);
+            const totalLeaves = leafIndices.length;
 
-            // 2. 描画に必要な「底辺の列（レーン）」の並びを取得
-            const leaves = getLeaves(finalLayout);
-            const totalLeaves = leaves.length;
-
-            // 3. 描画サイズ計算（無駄な空白が出ないようジャストフィット）
+            // 各種サイズ設定（ジャストフィット可変）
             const playerSpacingX = 65;  
             const roundHeightY = 50;    
             const textSpaceHeight = 110; 
             const topMargin = 30;       
 
-            // 階層（回戦数）の正確な自動計算
-            function getDepth(node) {
-                if (typeof node === 'string') return 1;
-                return Math.max(getDepth(node[0]), getDepth(node[1])) + 1;
-            }
-            const maxDepth = getDepth(finalLayout);
-
             const svgWidth = totalLeaves * playerSpacingX;
-            const svgHeight = topMargin + ((maxDepth - 1) * roundHeightY) + textSpaceHeight;
+            const svgHeight = topMargin + (design.heights * roundHeightY) + textSpaceHeight;
 
             const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
             svg.setAttribute("viewBox", `0 0 ${svgWidth} ${svgHeight}`);
@@ -204,42 +236,41 @@
 
             const baseY = svgHeight - textSpaceHeight;
 
-            // 各葉（プレイヤー）のX座標をあらかじめマッピング
+            // X座標のマッピング（底辺のインデックス基準）
             let leafXMap = {};
             for (let i = 0; i < totalLeaves; i++) {
-                leafXMap[leaves[i]] = (i * playerSpacingX) + (playerSpacingX / 2);
+                leafXMap[leafIndices[i]] = (i * playerSpacingX) + (playerSpacingX / 2);
             }
 
-            // 再帰的にトーナメントの線を下から上に描画する関数
-            function drawNode(node, currentDepth) {
-                // 末端ノード（プレイヤー自身）
-                if (typeof node === 'string') {
+            // 【完全個別対応】再帰的にそれぞれの人数専用の設計図通りに線を結ぶ
+            function drawTree(node, currentDepth) {
+                // 末端（プレイヤー名）の描画
+                if (typeof node === 'number') {
                     const x = leafXMap[node];
-                    // 名前を描画
-                    drawVerticalText(svg, node, x, baseY + 10);
+                    const pName = players[node] || `選手 ${node + 1}`;
+                    drawVerticalText(svg, pName, x, baseY + 10);
                     return { x: x, y: baseY };
                 }
 
-                // 子ノード（対戦カード）をそれぞれ描画して、その上端座標をもらう
-                const leftPos = drawNode(node[0], currentDepth + 1);
-                const rightPos = drawNode(node[1], currentDepth + 1);
+                // 子要素の座標を取得
+                const leftPos = drawTree(node[0], currentDepth + 1);
+                const rightPos = drawTree(node[1], currentDepth + 1);
 
-                // 今回の結合線の高さを決める（子がシードか1回戦かに関わらず、このふたつが合流する高さを統一）
+                // この合流点が位置すべき、上からの正確なY座標
                 const targetY = baseY - (currentDepth * roundHeightY);
 
-                // 左の子から上への縦線、右の子から上への縦線、そして2人を結ぶ横線を描画
+                // 線を引き、結合する
                 const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
                 path.setAttribute("d", `M ${leftPos.x} ${leftPos.y} L ${leftPos.x} ${targetY} L ${rightPos.x} ${targetY} L ${rightPos.x} ${rightPos.y}`);
                 gridGroup.appendChild(path);
 
-                // 次の回戦へ引き渡す中央の座標
                 return { x: (leftPos.x + rightPos.x) / 2, y: targetY };
             }
 
-            // 根っこ（決勝戦）から遡って全体を一網打尽に描画
-            const finalTop = drawNode(finalLayout, 1);
+            // 頂点（決勝戦）から設計図に基づいて一気に描画
+            const finalTop = drawTree(design.tree, 1);
 
-            // 優勝の上の最後の突起線
+            // 優勝の上の中心突起線
             const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
             path.setAttribute("d", `M ${finalTop.x} ${finalTop.y} L ${finalTop.x} ${finalTop.y - 20}`);
             gridGroup.appendChild(path);
