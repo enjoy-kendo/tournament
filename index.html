@@ -6,247 +6,15 @@
 
     <meta charset="UTF-8">
 
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
     <title>トーナメント表</title>
 
     <style>
 
-        *, *::before, *::after {
+        body { font-family: sans-serif; background: #f1f5f9; padding: 20px; text-align: center; }
 
-            box-sizing: border-box;
+        .wrapper { background: #fff; padding: 40px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); display: inline-block; }
 
-        }
-
-        body {
-
-            font-family: sans-serif;
-
-            background-color: #f1f5f9;
-
-            padding: 20px;
-
-            margin: 0;
-
-        }
-
-        /* 操作パネル */
-
-        .control-panel {
-
-            text-align: center;
-
-            margin: 0 auto 30px auto;
-
-            background: #ffffff;
-
-            padding: 20px;
-
-            border-radius: 8px;
-
-            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
-
-            max-width: 600px;
-
-        }
-
-        .control-row {
-
-            margin-bottom: 15px;
-
-        }
-
-        /* ボタン横並び */
-
-        .button-group {
-
-            display: flex;
-
-            justify-content: center;
-
-            gap: 10px;
-
-            margin-top: 15px;
-
-            flex-wrap: wrap;
-
-        }
-
-        select,
-
-        button {
-
-            font-size: 15px;
-
-            padding: 8px 16px;
-
-            border-radius: 6px;
-
-            border: 1px solid #cbd5e1;
-
-            outline: none;
-
-            height: 40px;
-
-        }
-
-        .btn-create {
-
-            background-color: #0f172a;
-
-            color: white;
-
-            border: none;
-
-            cursor: pointer;
-
-            font-weight: bold;
-
-        }
-
-        .btn-create:hover {
-
-            background-color: #1e293b;
-
-        }
-
-        .btn-print {
-
-            background-color: #16a34a;
-
-            color: white;
-
-            border: none;
-
-            cursor: pointer;
-
-            font-weight: bold;
-
-        }
-
-        .btn-print:hover {
-
-            background-color: #15803d;
-
-        }
-
-        textarea {
-
-            width: 100%;
-
-            min-height: 420px; /* 16人でも見やすい高さ */
-
-            padding: 10px;
-
-            font-size: 14px;
-
-            border: 1px solid #cbd5e1;
-
-            border-radius: 6px;
-
-            resize: vertical;
-
-            outline: none;
-
-            font-family: inherit;
-
-            line-height: 1.8;
-
-        }
-
-        textarea:focus {
-
-            border-color: #2563eb;
-
-            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
-
-        }
-
-        .hint {
-
-            font-size: 12px;
-
-            color: #64748b;
-
-            margin-top: 8px;
-
-            text-align: left;
-
-        }
-
-        .tournament-wrapper {
-
-            background-color: #ffffff;
-
-            border: 1px solid #e2e8f0;
-
-            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05);
-
-            max-width: 850px;
-
-            margin: 0 auto;
-
-            padding: 30px;
-
-        }
-
-        .tournament-container {
-
-            width: 100%;
-
-        }
-
-        #tournament-svg {
-
-            width: 100%;
-
-            height: auto;
-
-            display: block;
-
-        }
-
-        @media print {
-
-            @page {
-
-                size: A4 portrait;
-
-                margin: 40mm 10mm 10mm 10mm;
-
-            }
-
-            body {
-
-                background-color: #fff;
-
-                padding: 0;
-
-                margin: 0;
-
-            }
-
-            .control-panel {
-
-                display: none !important;
-
-            }
-
-            .tournament-wrapper {
-
-                border: none;
-
-                box-shadow: none;
-
-                padding: 0;
-
-                width: 100%;
-
-                max-width: 100%;
-
-            }
-
-        }
+        #tournament-svg { width: 800px; height: 600px; }
 
     </style>
 
@@ -254,549 +22,175 @@
 
 <body>
 
-    <div class="control-panel">
+    <div class="panel">
 
-        <div class="control-row">
+        <label>人数選択：</label>
 
-            <label for="select-count">
-
-                <strong>人数選択：</strong>
-
-            </label>
-
-            <select id="select-count" onchange="updateDefaultNames()"></select>
-
-        </div>
-
-        <div class="button-group">
-
-            <button class="btn-create" onclick="createTournament()">
-
-                トーナメント表を作成
-
-            </button>
-
-            <button id="js-print-btn" class="btn-print">
-
-                印刷する
-
-            </button>
-
-        </div>
-
-        <div class="control-row" style="text-align: left; margin-top: 20px;">
-
-            <label for="names-input">
-
-                <strong>参加者名（改行区切り）：</strong>
-
-            </label>
-
-            <textarea
-
-                id="names-input"
-
-                placeholder="上から順番に名前を入力してください"
-
-            ></textarea>
-
-        </div>
+        <select id="select-count" onchange="createTournament()"></select>
 
     </div>
 
-    <div class="tournament-wrapper">
+    <div class="wrapper">
 
-        <div class="tournament-container">
-
-            <svg
-
-                id="tournament-svg"
-
-                viewBox="0 0 800 750"
-
-                xmlns="http://www.w3.org/2000/svg">
-
-            </svg>
-
-        </div>
+        <svg id="tournament-svg" viewBox="0 0 800 600"></svg>
 
     </div>
+
+
 
     <script>
-	        const select = document.getElementById('select-count');
 
-        for (let i = 3; i <= 16; i++) {
+        const select = document.getElementById('select-count');
 
-            const option = document.createElement('option');
+        const svg = document.getElementById('tournament-svg');
 
-            option.value = i;
 
-            option.textContent = `${i} 人`;
 
-            if (i === 8) {
+        // プルダウン生成
 
-                option.selected = true;
+        for (let i = 3; i <= 6; i++) {
 
-            }
+            let opt = document.createElement('option');
 
-            select.appendChild(option);
+            opt.value = i; opt.text = i + '人';
 
-        }
+            if (i === 6) opt.selected = true;
 
-        function updateDefaultNames() {
-
-            const count = parseInt(select.value);
-
-            const textarea = document.getElementById('names-input');
-
-            let defaultNames = [];
-
-            for (let i = 1; i <= count; i++) {
-
-                defaultNames.push(`選手 ${i}`);
-
-            }
-
-            textarea.value = defaultNames.join('\n');
+            select.appendChild(opt);
 
         }
 
-        function createTournament() {
 
-            const count = parseInt(select.value);
 
-            const svg = document.getElementById('tournament-svg');
+        // 線描画のヘルパー関数
 
-            const textarea = document.getElementById('names-input');
+        const s = (x1, y1, x2, y2) => {
 
-            svg.innerHTML = '';
+            const l = document.createElementNS("http://www.w3.org/2000/svg", "line");
 
-            const lines = textarea.value
+            l.setAttribute("stroke", "black"); l.setAttribute("stroke-width", "2");
 
-                .split('\n')
+            l.setAttribute("x1", x1); l.setAttribute("y1", y1);
 
-                .map(line => line.trim())
+            l.setAttribute("x2", x2); l.setAttribute("y2", y2);
 
-                .filter(line => line !== '');
+            svg.appendChild(l);
 
-            let names = [];
+        };
+
+
+
+        // 選手名配置：各人数で最適な位置に配置
+
+        function drawPlayers(count, positions) {
 
             for (let i = 0; i < count; i++) {
 
-                if (lines[i] !== undefined) {
+                const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
 
-                    names.push(lines[i]);
-
-                } else {
-
-                    names.push(`選手 ${i + 1}`);
-
-                }
-
-            }
-
-            const width = 800;
-
-            const paddingX = 60;
-
-            const usableWidth = width - (paddingX * 2);
-
-            function drawLine(x1, y1, x2, y2) {
-
-                const line = document.createElementNS(
-
-                    "http://www.w3.org/2000/svg",
-
-                    "line"
-
-                );
-
-                line.setAttribute("x1", x1);
-
-                line.setAttribute("y1", y1);
-
-                line.setAttribute("x2", x2);
-
-                line.setAttribute("y2", y2);
-
-                line.setAttribute("stroke", "#000000");
-
-                line.setAttribute("stroke-width", "2");
-
-                line.setAttribute("stroke-linecap", "square");
-
-                svg.appendChild(line);
-
-            }
-
-            function drawSvgVerticalName(
-
-                x,
-
-                y,
-
-                nameText,
-
-                fontSize,
-
-                letterSpacing
-
-            ) {
-
-                const text = document.createElementNS(
-
-                    "http://www.w3.org/2000/svg",
-
-                    "text"
-
-                );
-
-                text.setAttribute("x", x);
-
-                text.setAttribute("y", y);
-
-                text.setAttribute("font-size", fontSize);
-
-                text.setAttribute("font-weight", "bold");
-
-                text.setAttribute("fill", "#1e293b");
+                text.setAttribute("x", positions[i]); text.setAttribute("y", 550);
 
                 text.setAttribute("text-anchor", "middle");
 
                 text.style.writingMode = "vertical-rl";
 
-                text.style.textCombineUpright = "digits 2";
-
-                text.style.letterSpacing = `${letterSpacing}px`;
-
-                text.textContent = nameText;
+                text.textContent = "選手 " + (i + 1);
 
                 svg.appendChild(text);
 
             }
 
-            const maxRounds = Math.ceil(Math.log2(count));
+        }
 
-            const totalSlots = Math.pow(2, maxRounds);
 
-            const seedCount = totalSlots - count;
 
-            const stepX = usableWidth / (totalSlots - 1);
+        function createTournament() {
 
-            let fullX = [];
+            svg.innerHTML = '';
 
-            for (let i = 0; i < totalSlots; i++) {
+            const count = parseInt(select.value);
 
-                fullX.push(paddingX + (i * stepX));
+            
 
-            }
+            switch(count) {
 
-            let isSeedSlot = Array(totalSlots).fill(false);
+                case 3: draw3(); drawPlayers(3, [200, 400, 600]); break;
 
-            let sPlaced = 0;
+                case 4: draw4(); drawPlayers(4, [150, 250, 550, 650]); break;
 
-            for (let i = totalSlots - 1; i >= 0; i -= 2) {
+                case 5: draw5(); drawPlayers(5, [150, 250, 350, 500, 600]); break;
 
-                if (sPlaced < seedCount) {
-
-                    isSeedSlot[i] = true;
-
-                    sPlaced++;
-
-                }
-
-            }
-
-            let yLevels = [300, 220, 140, 70, 40, 10];
-
-            if (maxRounds === 2) {
-
-                yLevels = [300, 220, 140, 100, 100, 100];
-
-            }
-
-            let playerPositions = [];
-
-            for (let i = 0; i < totalSlots; i += 2) {
-
-                if (isSeedSlot[i + 1]) {
-
-                    playerPositions.push(
-
-                        (fullX[i] + fullX[i + 1]) / 2
-
-                    );
-
-                } else {
-
-                    playerPositions.push(fullX[i]);
-
-                    playerPositions.push(fullX[i + 1]);
-
-                }
-
-            }
-
-            let fontSize = 18;
-
-            let lineBottomY = 320;
-
-            let textTopY = 370;
-
-            let letterSpacing = 2;
-
-            if (maxRounds === 2) {
-
-                fontSize = 38;
-
-                lineBottomY = 330;
-
-                textTopY = 410;
-
-                letterSpacing = 6;
-
-            } else if (maxRounds === 3) {
-
-                fontSize = 26;
-
-                lineBottomY = 325;
-
-                textTopY = 385;
-
-                letterSpacing = 4;
-
-            }
-
-            for (let i = 0; i < count; i++) {
-
-                drawSvgVerticalName(
-
-                    playerPositions[i],
-
-                    textTopY,
-
-                    names[i],
-
-                    fontSize,
-
-                    letterSpacing
-
-                );
-
-            }
-
-            let currentXList = [...fullX];
-
-            for (let r = 0; r < maxRounds; r++) {
-
-                let nextXList = [];
-
-                const currentY = yLevels[r];
-
-                const targetY = yLevels[r + 1];
-
-                for (let i = 0; i < currentXList.length; i += 2) {
-
-                    const x1 = currentXList[i];
-
-                    const x2 = currentXList[i + 1];
-
-                    const midX = (x1 + x2) / 2;
-
-                    nextXList.push(midX);
-
-                    if (r === 0) {
-
-                        if (isSeedSlot[i + 1]) {
-
-                            drawLine(
-
-                                midX,
-
-                                yLevels[2],
-
-                                midX,
-
-                                lineBottomY
-
-                            );
-
-                        } else {
-
-                            drawLine(
-
-                                x1,
-
-                                yLevels[1],
-
-                                x1,
-
-                                lineBottomY
-
-                            );
-
-                            drawLine(
-
-                                x2,
-
-                                yLevels[1],
-
-                                x2,
-
-                                lineBottomY
-
-                            );
-
-                            drawLine(
-
-                                x1,
-
-                                yLevels[1],
-
-                                x2,
-
-                                yLevels[1]
-
-                            );
-
-                            drawLine(
-
-                                midX,
-
-                                yLevels[1],
-
-                                midX,
-
-                                yLevels[2]
-
-                            );
-
-                        }
-
-                    } else {
-
-                        const maxActiveX =
-
-                            playerPositions[count - 1];
-
-                        const minActiveX =
-
-                            playerPositions[0];
-
-                        if (
-
-                            midX >= minActiveX - 10 &&
-
-                            midX <= maxActiveX + 10
-
-                        ) {
-
-                            drawLine(
-
-                                x1,
-
-                                currentY,
-
-                                x1,
-
-                                targetY
-
-                            );
-
-                            drawLine(
-
-                                x2,
-
-                                currentY,
-
-                                x2,
-
-                                targetY
-
-                            );
-
-                            drawLine(
-
-                                x1,
-
-                                targetY,
-
-                                x2,
-
-                                targetY
-
-                            );
-
-                            const nextUpY =
-
-                                yLevels[r + 2];
-
-                            if (
-
-                                nextUpY !== undefined
-
-                            ) {
-
-                                drawLine(
-
-                                    midX,
-
-                                    targetY,
-
-                                    midX,
-
-                                    nextUpY
-
-                                );
-
-                            }
-
-                        }
-
-                    }
-
-                }
-
-                currentXList = nextXList;
+                case 6: draw6(); drawPlayers(6, [150, 250, 350, 450, 550, 650]); break;
 
             }
 
         }
 
-        window.onload = function () {
 
-            updateDefaultNames();
 
-            createTournament();
+        function draw3() {
 
-            const printBtn =
+            s(200, 300, 400, 300); s(200, 300, 200, 450); s(400, 300, 400, 450);
 
-                document.getElementById(
+            s(300, 200, 300, 300); s(600, 450, 600, 200); s(300, 200, 600, 200);
 
-                    'js-print-btn'
+            s(450, 100, 450, 200);
 
-                );
+        }
 
-            if (printBtn) {
 
-                printBtn.addEventListener(
 
-                    'click',
+        function draw4() {
 
-                    function () {
+            s(150, 300, 250, 300); s(150, 300, 150, 450); s(250, 300, 250, 450);
 
-                        window.print();
+            s(550, 300, 650, 300); s(550, 300, 550, 450); s(650, 300, 650, 450);
 
-                    }
+            s(200, 200, 600, 200); s(200, 300, 200, 200); s(600, 300, 600, 200);
 
-                );
+            s(400, 100, 400, 200);
 
-            }
+        }
 
-        };
+
+
+        function draw5() {
+
+            s(150,300,250,300); s(150,300,150,450); s(250,300,250,450);
+
+            s(200,200,350,200); s(200,300,200,200); s(350,450,350,200);
+
+            s(500,300,600,300); s(500,300,500,450); s(600,300,600,450);
+
+            s(550,200,550,300); s(275,100,550,100); s(275,100,275,200); s(550,100,550,200); s(412,100,412,50);
+
+        }
+
+
+
+        function draw6() {
+
+            s(150,300,250,300); s(150,300,150,450); s(250,300,250,450);
+
+            s(550,300,650,300); s(550,300,550,450); s(650,300,650,450);
+
+            s(200,200,350,200); s(450,200,600,200);
+
+            s(200,300,200,200); s(350,450,350,200);
+
+            s(450,450,450,200); s(600,300,600,200);
+
+            s(275,100,525,100); s(275,100,275,200); s(525,100,525,200); s(400,100,400,50);
+
+        }
+
+
+
+        createTournament();
 
     </script>
 
 </body>
 
-</html>
+</html> 
+
