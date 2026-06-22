@@ -8,10 +8,13 @@
         body { font-family: sans-serif; background: #f0f4f8; margin: 0; padding: 10px; display: flex; flex-direction: column; align-items: center; }
         .main-container { display: flex; flex-direction: row; gap: 10px; width: 100%; max-width: 600px; background: white; padding: 15px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
         
-        /* 左側のコントロールパネル（ボタン類） */
-        .side-panel { display: flex; flex-direction: column; gap: 8px; width: 160px; flex-shrink: 0; }
+        /* 左側のコントロールパネル */
+        .side-panel { display: flex; flex-direction: column; width: 160px; flex-shrink: 0; }
         
-        /* 右側の入力エリア：幅を狭くして右側に配置 */
+        /* ボタンを囲む枠を新設し、margin-top: auto で一番下に配置 */
+        .btn-group { display: flex; flex-direction: column; gap: 8px; margin-top: auto; }
+        
+        /* 右側の入力エリア */
         #player-names { width: 100%; height: 250px; box-sizing: border-box; padding: 10px; color: #333; resize: none; border: 1px solid #ccc; border-radius: 6px; }
         
         label, select, textarea, button { font-size: 14px; }
@@ -21,7 +24,7 @@
         #canvas-container svg { width: 100%; height: auto; display: block; }
         .player-text { font-size: 13px; font-weight: bold; fill: #333; writing-mode: vertical-rl; text-anchor: start; }
         
-        /* スマホでも横並びを維持する設定 */
+        /* スマホ用設定 */
         @media (max-width: 500px) {
             .main-container { gap: 5px; padding: 10px; }
             .side-panel { width: 120px; }
@@ -36,8 +39,11 @@
     <div class="side-panel">
         <label>人数：</label>
         <select id="member-count" onchange="updateTextArea()"></select>
-        <button id="create-btn" style="padding:8px; cursor:pointer; background:#0f1e36; color:white; border:none; border-radius:6px;">作成</button>
-        <button onclick="window.print()" style="padding:8px; cursor:pointer; border: 1px solid #ccc; border-radius:6px; background: #fff;">印刷</button>
+        
+        <div class="btn-group">
+            <button id="create-btn" style="padding:8px; cursor:pointer; background:#0f1e36; color:white; border:none; border-radius:6px;">作成</button>
+            <button onclick="window.print()" style="padding:8px; cursor:pointer; border: 1px solid #ccc; border-radius:6px; background: #fff;">印刷</button>
+        </div>
     </div>
     
     <textarea id="player-names" placeholder="選手1&#10;選手2..."></textarea>
