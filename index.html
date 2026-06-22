@@ -3,143 +3,72 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>トーナメント表生成ツール</title>
+    <title>トーナメント表</title>
     <style>
-        body { font-family: sans-serif; background: #f0f4f8; margin: 0; padding: 10px; display: flex; flex-direction: column; align-items: center; }
-        .main-container { display: flex; flex-direction: row; gap: 10px; width: 100%; max-width: 600px; background: white; padding: 15px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-        
-        /* 左側のコントロールパネル */
-        .side-panel { display: flex; flex-direction: column; width: 160px; flex-shrink: 0; }
-        
-        /* ボタンを囲む枠を新設し、margin-top: auto で一番下に配置 */
-        .btn-group { display: flex; flex-direction: column; gap: 8px; margin-top: auto; }
-        
-        /* 右側の入力エリア */
-        #player-names { width: 100%; height: 250px; box-sizing: border-box; padding: 10px; color: #333; resize: none; border: 1px solid #ccc; border-radius: 6px; }
-        
-        label, select, textarea, button { font-size: 14px; }
-        select { padding: 5px; }
-        
-        #canvas-container { width: 100%; max-width: 600px; background: white; padding: 15px; border-radius: 12px; margin-top: 20px; box-sizing: border-box; }
-        #canvas-container svg { width: 100%; height: auto; display: block; }
-        .player-text { font-size: 13px; font-weight: bold; fill: #333; writing-mode: vertical-rl; text-anchor: start; }
-        
-        /* スマホ用設定 */
-        @media (max-width: 500px) {
-            .main-container { gap: 5px; padding: 10px; }
-            .side-panel { width: 120px; }
-            label, select, button { font-size: 12px; }
+        *, *::before, *::after { box-sizing: border-box; }
+        body { font-family: sans-serif; background-color: #f1f5f9; padding: 20px; margin: 0; }
+        .control-panel { text-align: center; margin: 0 auto 30px auto; background: #ffffff; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); max-width: 600px; }
+        .control-row { margin-bottom: 15px; }
+        .button-group { display: flex; justify-content: center; gap: 10px; margin-top: 15px; flex-wrap: wrap; }
+        select, button { font-size: 15px; padding: 8px 16px; border-radius: 6px; border: 1px solid #cbd5e1; outline: none; height: 40px; }
+        .btn-create { background-color: #0f172a; color: white; border: none; cursor: pointer; font-weight: bold; }
+        .btn-create:hover { background-color: #1e293b; }
+        .btn-print { background-color: #16a34a; color: white; border: none; cursor: pointer; font-weight: bold; }
+        .btn-print:hover { background-color: #15803d; }
+        textarea { width: 100%; min-height: 420px; padding: 10px; font-size: 14px; border: 1px solid #cbd5e1; border-radius: 6px; resize: vertical; outline: none; font-family: inherit; line-height: 1.8; }
+        .tournament-wrapper { background-color: #ffffff; border: 1px solid #e2e8f0; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05); max-width: 850px; margin: 0 auto; padding: 30px; }
+        #tournament-svg { width: 100%; height: auto; display: block; }
+        @media print {
+            @page { size: A4 portrait; margin: 40mm 10mm 10mm 10mm; }
+            body { background-color: #fff; padding: 0; }
+            .control-panel { display: none !important; }
+            .tournament-wrapper { border: none; box-shadow: none; padding: 0; width: 100%; max-width: 100%; }
         }
-        @media print { .main-container { display: none; } }
     </style>
 </head>
 <body>
-
-<div class="main-container">
-    <div class="side-panel">
-        <label>人数：</label>
-        <select id="member-count" onchange="updateTextArea()"></select>
-        
-        <div class="btn-group">
-            <button id="create-btn" style="padding:8px; cursor:pointer; background:#0f1e36; color:white; border:none; border-radius:6px;">作成</button>
-            <button onclick="window.print()" style="padding:8px; cursor:pointer; border: 1px solid #ccc; border-radius:6px; background: #fff;">印刷</button>
+    <div class="control-panel">
+        <div class="control-row">
+            <label for="select-count"><strong>人数選択：</strong></label>
+            <select id="select-count" onchange="updateDefaultNames()"></select>
+        </div>
+        <div class="button-group">
+            <button class="btn-create" onclick="createTournament()">トーナメント表を作成</button>
+            <button id="js-print-btn" class="btn-print">印刷する</button>
+        </div>
+        <div class="control-row" style="text-align: left; margin-top: 20px;">
+            <label for="names-input"><strong>参加者名（改行区切り）：</strong></label>
+            <textarea id="names-input" placeholder="上から順番に名前を入力してください"></textarea>
         </div>
     </div>
-    
-    <textarea id="player-names" placeholder="選手1&#10;選手2..."></textarea>
-</div>
-
-<div id="canvas-container"></div>
-
-<script>
-    // プルダウン初期化
-    const select = document.getElementById('member-count');
-    for(let i = 3; i <= 16; i++) {
-        let opt = document.createElement('option');
-        opt.value = i; opt.innerHTML = i + '人';
-        if(i === 5) opt.selected = true;
-        select.appendChild(opt);
-    }
-
-    function updateTextArea() {
-        const ta = document.getElementById('player-names');
-        const count = parseInt(select.value);
-        ta.value = Array.from({length: count}, (_, i) => `選手 ${i + 1}`).join('\n');
-    }
-
-    document.getElementById('create-btn').addEventListener('click', drawTournament);
-
-    function drawTournament() {
-        const names = document.getElementById('player-names').value.split('\n').filter(n => n.trim() !== "");
-        if (names.length === 0) return;
-        
-        const n = names.length;
-        const container = document.getElementById('canvas-container');
-        container.innerHTML = '';
-        
-        const rounds = Math.ceil(Math.log2(n));
-        const totalSlots = Math.pow(2, rounds);
-        const svgWidth = totalSlots * 100;
-        const svgHeight = 250 + (rounds * 80); 
-        
-        const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-        svg.setAttribute("viewBox", `0 0 ${svgWidth} ${svgHeight}`);
-
-        let slots = new Array(totalSlots).fill(null);
-        for (let i = 0; i < n; i++) slots[i] = names[i];
-
-        const baseLineY = svgHeight - 80;
-        let nodes = slots.map((name, i) => {
-            const x = (i * 100) + 50;
-            if (name) {
-                const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
-                text.setAttribute("x", x); 
-                text.setAttribute("y", baseLineY + 10);
-                text.setAttribute("class", "player-text");
-                text.textContent = name;
-                svg.appendChild(text);
-            }
-            return { x: x, y: baseLineY, active: !!name };
-        });
-
-        for (let r = 0; r < rounds; r++) {
-            const nextNodes = [];
-            for (let i = 0; i < nodes.length; i += 2) {
-                const l = nodes[i], rNode = nodes[i+1];
-                const midX = (l.x + rNode.x) / 2;
-                const midY = l.y - 80;
-
-                if (l.active && rNode.active) {
-                    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-                    path.setAttribute("d", `M ${l.x} ${l.y} V ${midY} H ${rNode.x} V ${l.y}`);
-                    path.setAttribute("stroke", "#333"); path.setAttribute("stroke-width", "2.5"); path.setAttribute("fill", "none");
-                    svg.appendChild(path);
-                    nextNodes.push({ x: midX, y: midY, active: true });
-                } else if (l.active || rNode.active) {
-                    const target = l.active ? l : rNode;
-                    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-                    path.setAttribute("d", `M ${target.x} ${target.y} V ${midY}`);
-                    path.setAttribute("stroke", "#333"); path.setAttribute("stroke-width", "2.5"); path.setAttribute("fill", "none");
-                    svg.appendChild(path);
-                    nextNodes.push({ x: target.x, y: midY, active: true });
-                } else {
-                    nextNodes.push({ x: midX, y: midY, active: false });
-                }
-            }
-            nodes = nextNodes;
+    <div class="tournament-wrapper">
+        <div class="tournament-container">
+            <svg id="tournament-svg" viewBox="0 0 800 750" xmlns="http://www.w3.org/2000/svg"></svg>
+        </div>
+    </div>
+    <script>
+        const select = document.getElementById('select-count');
+        for (let i = 3; i <= 16; i++) {
+            const option = document.createElement('option');
+            option.value = i;
+            option.textContent = `${i} 人`;
+            if (i === 8) option.selected = true;
+            select.appendChild(option);
         }
-        
-        if (nodes.length > 0 && nodes[0].active) {
-            const winner = nodes[0];
-            const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
-            line.setAttribute("x1", winner.x); line.setAttribute("y1", winner.y);
-            line.setAttribute("x2", winner.x); line.setAttribute("y2", winner.y - 40);
-            line.setAttribute("stroke", "#000"); line.setAttribute("stroke-width", "2.5");
-            svg.appendChild(line);
+
+        function updateDefaultNames() {
+            const count = parseInt(select.value);
+            const textarea = document.getElementById('names-input');
+            let defaultNames = [];
+            for (let i = 1; i <= count; i++) defaultNames.push(`選手 ${i}`);
+            textarea.value = defaultNames.join('\n');
         }
-        container.appendChild(svg);
-    }
-    updateTextArea();
-</script>
-</body>
-</html>
+
+        function createTournament() {
+            const count = parseInt(select.value);
+            const svg = document.getElementById('tournament-svg');
+            const textarea = document.getElementById('names-input');
+            svg.innerHTML = '';
+            const lines = textarea.value.split('\n').map(line => line.trim()).filter(line => line !== '');
+            let names = [];
+            for (
