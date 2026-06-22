@@ -3,40 +3,41 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>効率的トーナメント表レイアウト</title>
+    <title>トーナメント表生成ツール</title>
     <style>
-        body { font-family: sans-serif; background: #f0f4f8; margin: 0; padding: 10px; display: flex; flex-direction: column; align-items: center; font-size: 16px; }
-        .main-container { display: flex; flex-direction: row; gap: 15px; width: 100%; max-width: 700px; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-        /* 左側のコントロールパネル */
-        .side-panel { display: flex; flex-direction: column; gap: 10px; width: 40%; }
-        /* 右側の入力エリア */
-        #player-names { width: 60%; height: 250px; box-sizing: border-box; padding: 12px; color: #333; line-height: 1.5; resize: none; }
+        body { font-family: sans-serif; background: #f0f4f8; margin: 0; padding: 10px; display: flex; flex-direction: column; align-items: center; }
+        .main-container { display: flex; flex-direction: row; gap: 10px; width: 100%; max-width: 600px; background: white; padding: 15px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        
+        /* 左側のコントロールパネル（ボタン類） */
+        .side-panel { display: flex; flex-direction: column; gap: 8px; width: 160px; flex-shrink: 0; }
+        
+        /* 右側の入力エリア：幅を狭くして右側に配置 */
+        #player-names { width: 100%; height: 250px; box-sizing: border-box; padding: 10px; color: #333; resize: none; border: 1px solid #ccc; border-radius: 6px; }
         
         label, select, textarea, button { font-size: 14px; }
-        #canvas-container { width: 100%; max-width: 700px; background: white; padding: 15px; border-radius: 12px; margin-top: 20px; box-sizing: border-box; }
+        select { padding: 5px; }
+        
+        #canvas-container { width: 100%; max-width: 600px; background: white; padding: 15px; border-radius: 12px; margin-top: 20px; box-sizing: border-box; }
         #canvas-container svg { width: 100%; height: auto; display: block; }
         .player-text { font-size: 13px; font-weight: bold; fill: #333; writing-mode: vertical-rl; text-anchor: start; }
         
-        /* スマホ用：縦並びに戻す */
+        /* スマホでも横並びを維持する設定 */
         @media (max-width: 500px) {
-            .main-container { flex-direction: column; }
-            .side-panel, #player-names { width: 100%; }
+            .main-container { gap: 5px; padding: 10px; }
+            .side-panel { width: 120px; }
+            label, select, button { font-size: 12px; }
         }
-        @media print { .control-panel, .main-container { display: none; } }
+        @media print { .main-container { display: none; } }
     </style>
 </head>
 <body>
 
 <div class="main-container">
     <div class="side-panel">
-        <label>人数選択：</label>
-        <select id="member-count" onchange="updateTextArea()">
-            <script>
-                for(let i = 3; i <= 16; i++) document.write(`<option value="${i}" ${i === 5 ? 'selected' : ''}>${i}人</option>`);
-            </script>
-        </select>
-        <button id="create-btn" style="padding:10px; cursor:pointer; background:#0f1e36; color:white; border:none; border-radius:6px;">トーナメントを作成</button>
-        <button onclick="window.print()" style="padding:10px; cursor:pointer; border: 1px solid #ccc; border-radius:6px; background: #fff;">印刷する</button>
+        <label>人数：</label>
+        <select id="member-count" onchange="updateTextArea()"></select>
+        <button id="create-btn" style="padding:8px; cursor:pointer; background:#0f1e36; color:white; border:none; border-radius:6px;">作成</button>
+        <button onclick="window.print()" style="padding:8px; cursor:pointer; border: 1px solid #ccc; border-radius:6px; background: #fff;">印刷</button>
     </div>
     
     <textarea id="player-names" placeholder="選手1&#10;選手2..."></textarea>
@@ -45,9 +46,18 @@
 <div id="canvas-container"></div>
 
 <script>
+    // プルダウン初期化
+    const select = document.getElementById('member-count');
+    for(let i = 3; i <= 16; i++) {
+        let opt = document.createElement('option');
+        opt.value = i; opt.innerHTML = i + '人';
+        if(i === 5) opt.selected = true;
+        select.appendChild(opt);
+    }
+
     function updateTextArea() {
         const ta = document.getElementById('player-names');
-        const count = parseInt(document.getElementById('member-count').value);
+        const count = parseInt(select.value);
         ta.value = Array.from({length: count}, (_, i) => `選手 ${i + 1}`).join('\n');
     }
 
