@@ -3,17 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>スマホ対応トーナメント表</title>
+    <title>縦書き対応トーナメント表</title>
     <style>
-        body { font-family: sans-serif; background: #f0f4f8; margin: 0; padding: 10px; display: flex; flex-direction: column; align-items: center; }
-        .control-panel { background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); width: 100%; max-width: 500px; margin-bottom: 10px; }
-        .btn-container { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
-        /* テキストエリアを少しコンパクトにしつつ、動的に伸びるように設定 */
-        #player-names { width: 100%; box-sizing: border-box; padding: 8px; color: #333; }
+        body { font-family: sans-serif; background: #f0f4f8; margin: 0; padding: 10px; display: flex; flex-direction: column; align-items: center; font-size: 16px; }
+        .control-panel { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); width: 100%; max-width: 500px; margin-bottom: 20px; }
+        label, select, textarea, button { font-size: 16px; }
+        .btn-container { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
+        #player-names { width: 100%; box-sizing: border-box; padding: 12px; color: #333; line-height: 1.5; }
         #player-names::placeholder { color: #aaa; }
-        #canvas-container { width: 100%; max-width: 600px; background: white; padding: 10px; border-radius: 8px; box-sizing: border-box; }
+        #canvas-container { width: 100%; max-width: 600px; background: white; padding: 15px; border-radius: 12px; box-sizing: border-box; }
         #canvas-container svg { width: 100%; height: auto; display: block; }
-        .player-text { font-size: 10px; font-weight: bold; fill: #333; }
+        /* 縦書き設定：SVG内のテキストクラスに適用 */
+        .player-text { font-size: 13px; font-weight: bold; fill: #333; writing-mode: vertical-rl; text-anchor: start; }
         @media print { .control-panel { display: none; } }
     </style>
 </head>
@@ -21,17 +22,17 @@
 
 <div class="control-panel">
     <label>人数選択：</label>
-    <select id="member-count" onchange="updateTextArea()">
+    <select id="member-count" onchange="updateTextArea()" style="width: 100%; padding: 8px; margin-top: 5px;">
         <script>
             for(let i = 3; i <= 16; i++) document.write(`<option value="${i}" ${i === 5 ? 'selected' : ''}>${i}人</option>`);
         </script>
     </select>
-    <label style="display:block; margin-top:10px;">参加者名：</label>
+    <label style="display:block; margin-top:15px;">参加者名：</label>
     <textarea id="player-names" placeholder="選手1&#10;選手2..." style="height: 120px;"></textarea>
     
     <div class="btn-container">
-        <button id="create-btn" style="padding:10px; cursor:pointer; background:#0f1e36; color:white; border:none;">トーナメントを作成</button>
-        <button onclick="window.print()" style="padding:10px; cursor:pointer;">印刷する</button>
+        <button id="create-btn" style="padding:12px; cursor:pointer; background:#0f1e36; color:white; border:none; border-radius:6px;">トーナメントを作成</button>
+        <button onclick="window.print()" style="padding:12px; cursor:pointer; border: 1px solid #ccc; border-radius:6px; background: #fff;">印刷する</button>
     </div>
 </div>
 
@@ -41,13 +42,8 @@
     function updateTextArea() {
         const ta = document.getElementById('player-names');
         const count = parseInt(document.getElementById('member-count').value);
-        
-        // 選手名を生成
         ta.value = Array.from({length: count}, (_, i) => `選手 ${i + 1}`).join('\n');
-        
-        // 人数に応じてテキストエリアの高さを調整（1行20pxとして計算）
-        const newHeight = Math.min(count * 22, 250); 
-        ta.style.height = `${newHeight}px`;
+        ta.style.height = `${Math.min(count * 28, 300)}px`;
     }
 
     document.getElementById('create-btn').addEventListener('click', drawTournament);
@@ -62,8 +58,8 @@
         
         const rounds = Math.ceil(Math.log2(n));
         const totalSlots = Math.pow(2, rounds);
-        const svgWidth = totalSlots * 80;
-        const svgHeight = 150 + (rounds * 60); 
+        const svgWidth = totalSlots * 100;
+        const svgHeight = 250 + (rounds * 80); 
         
         const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
         svg.setAttribute("viewBox", `0 0 ${svgWidth} ${svgHeight}`);
@@ -71,13 +67,14 @@
         let slots = new Array(totalSlots).fill(null);
         for (let i = 0; i < n; i++) slots[i] = names[i];
 
-        const baseLineY = svgHeight - 50;
+        const baseLineY = svgHeight - 80;
         let nodes = slots.map((name, i) => {
-            const x = (i * 80) + 40;
+            const x = (i * 100) + 50;
             if (name) {
                 const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
-                text.setAttribute("x", x); text.setAttribute("y", baseLineY + 20);
-                text.setAttribute("text-anchor", "middle");
+                // 縦書き用に座標を調整
+                text.setAttribute("x", x); 
+                text.setAttribute("y", baseLineY + 10);
                 text.setAttribute("class", "player-text");
                 text.textContent = name;
                 svg.appendChild(text);
@@ -90,19 +87,19 @@
             for (let i = 0; i < nodes.length; i += 2) {
                 const l = nodes[i], rNode = nodes[i+1];
                 const midX = (l.x + rNode.x) / 2;
-                const midY = l.y - 60;
+                const midY = l.y - 80;
 
                 if (l.active && rNode.active) {
                     const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
                     path.setAttribute("d", `M ${l.x} ${l.y} V ${midY} H ${rNode.x} V ${l.y}`);
-                    path.setAttribute("stroke", "#333"); path.setAttribute("stroke-width", "2"); path.setAttribute("fill", "none");
+                    path.setAttribute("stroke", "#333"); path.setAttribute("stroke-width", "2.5"); path.setAttribute("fill", "none");
                     svg.appendChild(path);
                     nextNodes.push({ x: midX, y: midY, active: true });
                 } else if (l.active || rNode.active) {
                     const target = l.active ? l : rNode;
                     const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
                     path.setAttribute("d", `M ${target.x} ${target.y} V ${midY}`);
-                    path.setAttribute("stroke", "#333"); path.setAttribute("stroke-width", "2"); path.setAttribute("fill", "none");
+                    path.setAttribute("stroke", "#333"); path.setAttribute("stroke-width", "2.5"); path.setAttribute("fill", "none");
                     svg.appendChild(path);
                     nextNodes.push({ x: target.x, y: midY, active: true });
                 } else {
@@ -116,8 +113,8 @@
             const winner = nodes[0];
             const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
             line.setAttribute("x1", winner.x); line.setAttribute("y1", winner.y);
-            line.setAttribute("x2", winner.x); line.setAttribute("y2", winner.y - 30);
-            line.setAttribute("stroke", "#000"); line.setAttribute("stroke-width", "2");
+            line.setAttribute("x2", winner.x); line.setAttribute("y2", winner.y - 40);
+            line.setAttribute("stroke", "#000"); line.setAttribute("stroke-width", "2.5");
             svg.appendChild(line);
         }
         container.appendChild(svg);
