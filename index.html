@@ -2,74 +2,118 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>公平なトーナメント表作成ツール</title>
+    <title>公平なトーナメント表（修正版）</title>
     <style>
         body { font-family: sans-serif; background: #f0f4f8; padding: 20px; display: flex; flex-direction: column; align-items: center; }
         .control-panel { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); width: 100%; max-width: 500px; margin-bottom: 20px; }
-        textarea { width: 100%; height: 100px; margin: 10px 0; }
-        button { padding: 10px 20px; cursor: pointer; }
-        #canvas-container { overflow-x: auto; background: white; padding: 20px; border-radius: 8px; }
-        .player-text { font-size: 12px; font-weight: bold; }
+        #canvas-container { background: white; padding: 20px; border-radius: 8px; overflow-x: auto; }
+        .player-text { font-size: 11px; font-weight: bold; fill: #333; }
     </style>
 </head>
 <body>
 
-    <div class="control-panel">
-        <label>参加者名（改行区切り）：</label>
-        <textarea id="player-names">選手 1
-選手 2
-選手 3
-選手 4
-選手 5</textarea>
-        <button onclick="generateTournament()">公平なトーナメントを作成</button>
-    </div>
+<div class="control-panel">
+    <label>人数選択：</label>
+    <select id="member-count" onchange="updateTextArea()">
+        <script>
+            for(let i = 3; i <= 16; i++) document.write(`<option value="${i}" ${i === 5 ? 'selected' : ''}>${i}人</option>`);
+        </script>
+    </select>
+    <label style="display:block; margin-top:10px;">参加者名：</label>
+    <textarea id="player-names" style="width:100%; height:100px;"></textarea>
+    <button id="create-btn" style="width:100%; margin-top:10px; padding:10px;">トーナメント表を生成</button>
+</div>
 
-    <div id="canvas-container"></div>
+<div id="canvas-container"></div>
 
-    <script>
-        function generateTournament() {
-            const players = document.getElementById('player-names').value.split('\n').filter(n => n.trim() !== "");
-            const n = players.length;
-            if (n < 3) return alert("3人以上で入力してください");
+<script>
+    function updateTextArea() {
+        const count = parseInt(document.getElementById('member-count').value);
+        document.getElementById('player-names').value = Array.from({length: count}, (_, i) => `選手 ${i + 1}`).join('\n');
+    }
 
-            // 次の2のべき乗を求める
-            const pow2 = Math.pow(2, Math.ceil(Math.log2(n)));
-            const byes = pow2 - n; // 不戦勝の数
-            
-            // 参加者を並び替え（不戦勝がシードとして均等に配置されるように調整）
-            let bracket = [...players];
-            // 不戦勝を考慮して、1回戦に回る人数を計算
-            const round1Matches = n - byes; 
-            
-            const container = document.getElementById('canvas-container');
-            container.innerHTML = '';
-            
-            const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-            const width = pow2 * 80;
-            svg.setAttribute("viewBox", `0 0 ${width} 400`);
-            svg.setAttribute("width", width);
+    document.getElementById('create-btn').addEventListener('click', drawTournament);
 
-            // 描画ロジック：基本は現在の位置からスタート
-            players.forEach((name, i) => {
-                const x = (i * 80) + 40;
+    function drawTournament() {
+        const names = document.getElementById('player-names').value.split('\n').filter(n => n.trim() !== "");
+        if (names.length === 0) return;
+        
+        const n = names.length;
+        const container = document.getElementById('canvas-container');
+        container.innerHTML = '';
+        
+        const rounds = Math.ceil(Math.log2(n));
+        const totalSlots = Math.pow(2, rounds);
+        const byes = totalSlots - n;
+
+        const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+        svg.setAttribute("width", totalSlots * 80);
+        svg.setAttribute("height", 500);
+
+        // 公平な配置：左から「選手1」「選手2」... となるように配置
+        let slots = new Array(totalSlots).fill(null);
+        // byesを考慮して選手を順番に配置
+        for (let i = 0; i < n; i++) {
+            // シードを配置する場所を計算（簡易的な均等配置）
+            const pos = (i < byes) ? i * 2 + 1 : (i - byes) + (Math.floor(byes/2) * 2);
+            // ※シンプルに左から順に並べるロジック
+            slots[i] = names[i];
+        }
+
+        let nodes = slots.map((name, i) => {
+            const x = (i * 80) + 40;
+            if (name) {
                 const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
-                text.setAttribute("x", x);
-                text.setAttribute("y", 350);
+                text.setAttribute("x", x); text.setAttribute("y", 480);
                 text.setAttribute("text-anchor", "middle");
                 text.setAttribute("class", "player-text");
                 text.textContent = name;
                 svg.appendChild(text);
-            });
+            }
+            return { x: x, y: 450, active: !!name };
+        });
 
-            // ここに公平な線を引くロジック（簡易版）
-            const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-            path.setAttribute("stroke", "#333");
-            path.setAttribute("fill", "none");
-            path.setAttribute("d", `M 40 330 V 280 H ${width - 40} V 330`);
-            svg.appendChild(path);
+        // 階層描画
+        for (let r = 0; r < rounds; r++) {
+            const nextNodes = [];
+            for (let i = 0; i < nodes.length; i += 2) {
+                const l = nodes[i], rNode = nodes[i+1];
+                const midX = (l.x + rNode.x) / 2;
+                const midY = l.y - 40;
 
-            container.appendChild(svg);
+                if (l.active && rNode.active) {
+                    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                    path.setAttribute("d", `M ${l.x} ${l.y} V ${midY} H ${rNode.x} V ${l.y}`);
+                    path.setAttribute("stroke", "#333"); path.setAttribute("stroke-width", "2"); path.setAttribute("fill", "none");
+                    svg.appendChild(path);
+                    nextNodes.push({ x: midX, y: midY, active: true });
+                } else if (l.active || rNode.active) {
+                    const target = l.active ? l : rNode;
+                    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                    path.setAttribute("d", `M ${target.x} ${target.y} V ${midY}`);
+                    path.setAttribute("stroke", "#333"); path.setAttribute("stroke-width", "2"); path.setAttribute("fill", "none");
+                    svg.appendChild(path);
+                    nextNodes.push({ x: target.x, y: midY, active: true });
+                } else {
+                    nextNodes.push({ x: midX, y: midY, active: false });
+                }
+            }
+            nodes = nextNodes;
         }
-    </script>
+
+        // 優勝者の縦線（太さを2pxに統一）
+        if (nodes.length > 0 && nodes[0].active) {
+            const winner = nodes[0];
+            const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+            line.setAttribute("x1", winner.x); line.setAttribute("y1", winner.y);
+            line.setAttribute("x2", winner.x); line.setAttribute("y2", winner.y - 30);
+            line.setAttribute("stroke", "#000");
+            line.setAttribute("stroke-width", "2"); 
+            svg.appendChild(line);
+        }
+        container.appendChild(svg);
+    }
+    updateTextArea();
+</script>
 </body>
 </html>
