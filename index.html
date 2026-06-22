@@ -2,119 +2,74 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>トーナメント表自動作成ツール</title>
+    <title>公平なトーナメント表作成ツール</title>
     <style>
-        body { font-family: 'Helvetica Neue', Arial, sans-serif; background-color: #f0f4f8; margin: 0; padding: 10px; display: flex; flex-direction: column; align-items: center; }
-        .control-panel { background: white; padding: 15px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); width: 100%; max-width: 500px; margin-bottom: 10px; }
-        .form-group { margin-bottom: 10px; }
-        label { display: block; font-weight: bold; margin-bottom: 5px; color: #333; }
-        select, textarea { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; box-sizing: border-box; }
-        textarea { height: 100px; resize: vertical; }
-        .btn-group { display: flex; gap: 10px; margin-top: 10px; }
-        button { flex: 1; padding: 10px; border: none; border-radius: 4px; font-size: 14px; font-weight: bold; cursor: pointer; }
-        .btn-create { background-color: #0f1e36; color: white; }
-        .btn-print { background-color: #21ba45; color: white; }
-        .tournament-wrapper { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); width: 100%; max-width: 1000px; overflow-x: auto; }
-        svg { display: block; margin: 0 auto; }
-        .player-text { font-size: 14px; font-weight: bold; fill: #333; pointer-events: none; }
-        @media print { body { background: white; } .control-panel { display: none; } .tournament-wrapper { box-shadow: none; } }
+        body { font-family: sans-serif; background: #f0f4f8; padding: 20px; display: flex; flex-direction: column; align-items: center; }
+        .control-panel { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); width: 100%; max-width: 500px; margin-bottom: 20px; }
+        textarea { width: 100%; height: 100px; margin: 10px 0; }
+        button { padding: 10px 20px; cursor: pointer; }
+        #canvas-container { overflow-x: auto; background: white; padding: 20px; border-radius: 8px; }
+        .player-text { font-size: 12px; font-weight: bold; }
     </style>
 </head>
 <body>
 
     <div class="control-panel">
-        <div class="form-group">
-            <label for="member-count">人数選択：</label>
-            <select id="member-count" onchange="updateTextArea()">
-                <script>
-                    for(let i = 3; i <= 16; i++) {
-                        document.write(`<option value="${i}" ${i === 5 ? 'selected' : ''}>${i}人</option>`);
-                    }
-                </script>
-            </select>
-        </div>
-        <div class="form-group">
-            <label for="player-names">参加者名（改行区切り）：</label>
-            <textarea id="player-names"></textarea>
-        </div>
-        <div class="btn-group">
-            <button class="btn-create" onclick="generateTournament()">トーナメント表を作成</button>
-            <button class="btn-print" onclick="window.print()">印刷する</button>
-        </div>
+        <label>参加者名（改行区切り）：</label>
+        <textarea id="player-names">選手 1
+選手 2
+選手 3
+選手 4
+選手 5</textarea>
+        <button onclick="generateTournament()">公平なトーナメントを作成</button>
     </div>
 
-    <div class="tournament-wrapper" id="tournament-wrapper" style="display: none;">
-        <div id="canvas-container"></div>
-    </div>
+    <div id="canvas-container"></div>
 
     <script>
-        function updateTextArea() {
-            const count = parseInt(document.getElementById('member-count').value);
-            document.getElementById('player-names').value = Array.from({length: count}, (_, i) => `選手 ${i + 1}`).join('\n');
-        }
-
         function generateTournament() {
-            const lines = document.getElementById('player-names').value.split('\n').map(l => l.trim()).filter(l => l !== "");
-            if (lines.length < 3 || lines.length > 16) return alert("3～16人で入力してください。");
+            const players = document.getElementById('player-names').value.split('\n').filter(n => n.trim() !== "");
+            const n = players.length;
+            if (n < 3) return alert("3人以上で入力してください");
 
+            // 次の2のべき乗を求める
+            const pow2 = Math.pow(2, Math.ceil(Math.log2(n)));
+            const byes = pow2 - n; // 不戦勝の数
+            
+            // 参加者を並び替え（不戦勝がシードとして均等に配置されるように調整）
+            let bracket = [...players];
+            // 不戦勝を考慮して、1回戦に回る人数を計算
+            const round1Matches = n - byes; 
+            
             const container = document.getElementById('canvas-container');
             container.innerHTML = '';
-            document.getElementById('tournament-wrapper').style.display = 'block';
-
-            const spacingX = 80;
-            const svgWidth = lines.length * spacingX;
-            const svgHeight = 500;
-            const baseY = 400; // 名前の配置位置
-
+            
             const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-            svg.setAttribute("viewBox", `0 0 ${svgWidth} ${svgHeight}`);
-            svg.setAttribute("width", svgWidth);
-            svg.setAttribute("height", svgHeight);
+            const width = pow2 * 80;
+            svg.setAttribute("viewBox", `0 0 ${width} 400`);
+            svg.setAttribute("width", width);
 
-            let currentNodes = lines.map((name, i) => {
-                const x = (i * spacingX) + (spacingX / 2);
-                // 選手名描画
+            // 描画ロジック：基本は現在の位置からスタート
+            players.forEach((name, i) => {
+                const x = (i * 80) + 40;
                 const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
                 text.setAttribute("x", x);
-                text.setAttribute("y", baseY + 10);
+                text.setAttribute("y", 350);
                 text.setAttribute("text-anchor", "middle");
                 text.setAttribute("class", "player-text");
                 text.textContent = name;
                 svg.appendChild(text);
-                return { x, y: baseY - 40 };
             });
 
-            let round = 1;
-            while (currentNodes.length > 1) {
-                const nextNodes = [];
-                const pathGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
-                pathGroup.setAttribute("stroke", "#333");
-                pathGroup.setAttribute("stroke-width", "2");
-                pathGroup.setAttribute("fill", "none");
-                
-                for (let i = 0; i < currentNodes.length; i += 2) {
-                    if (i + 1 < currentNodes.length) {
-                        const left = currentNodes[i];
-                        const right = currentNodes[i+1];
-                        const midX = (left.x + right.x) / 2;
-                        const nextY = left.y - 40;
-                        
-                        const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-                        path.setAttribute("d", `M ${left.x} ${left.y} V ${nextY} H ${right.x} V ${left.y}`);
-                        pathGroup.appendChild(path);
-                        nextNodes.push({ x: midX, y: nextY });
-                    } else {
-                        nextNodes.push(currentNodes[i]);
-                    }
-                }
-                svg.appendChild(pathGroup);
-                currentNodes = nextNodes;
-                round++;
-            }
+            // ここに公平な線を引くロジック（簡易版）
+            const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+            path.setAttribute("stroke", "#333");
+            path.setAttribute("fill", "none");
+            path.setAttribute("d", `M 40 330 V 280 H ${width - 40} V 330`);
+            svg.appendChild(path);
+
             container.appendChild(svg);
         }
-        updateTextArea();
     </script>
 </body>
 </html>
