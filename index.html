@@ -8,6 +8,9 @@
         body { font-family: sans-serif; background: #f0f4f8; margin: 0; padding: 10px; display: flex; flex-direction: column; align-items: center; }
         .control-panel { background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); width: 100%; max-width: 500px; margin-bottom: 10px; }
         .btn-container { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+        /* テキストエリアを少しコンパクトにしつつ、動的に伸びるように設定 */
+        #player-names { width: 100%; box-sizing: border-box; padding: 8px; color: #333; }
+        #player-names::placeholder { color: #aaa; }
         #canvas-container { width: 100%; max-width: 600px; background: white; padding: 10px; border-radius: 8px; box-sizing: border-box; }
         #canvas-container svg { width: 100%; height: auto; display: block; }
         .player-text { font-size: 10px; font-weight: bold; fill: #333; }
@@ -24,7 +27,7 @@
         </script>
     </select>
     <label style="display:block; margin-top:10px;">参加者名：</label>
-    <textarea id="player-names" style="width:100%; height:80px; box-sizing: border-box;"></textarea>
+    <textarea id="player-names" placeholder="選手1&#10;選手2..." style="height: 120px;"></textarea>
     
     <div class="btn-container">
         <button id="create-btn" style="padding:10px; cursor:pointer; background:#0f1e36; color:white; border:none;">トーナメントを作成</button>
@@ -36,8 +39,15 @@
 
 <script>
     function updateTextArea() {
+        const ta = document.getElementById('player-names');
         const count = parseInt(document.getElementById('member-count').value);
-        document.getElementById('player-names').value = Array.from({length: count}, (_, i) => `選手 ${i + 1}`).join('\n');
+        
+        // 選手名を生成
+        ta.value = Array.from({length: count}, (_, i) => `選手 ${i + 1}`).join('\n');
+        
+        // 人数に応じてテキストエリアの高さを調整（1行20pxとして計算）
+        const newHeight = Math.min(count * 22, 250); 
+        ta.style.height = `${newHeight}px`;
     }
 
     document.getElementById('create-btn').addEventListener('click', drawTournament);
@@ -52,8 +62,6 @@
         
         const rounds = Math.ceil(Math.log2(n));
         const totalSlots = Math.pow(2, rounds);
-        
-        // 人数に応じて高さを動的に変更（最小200〜最大450）
         const svgWidth = totalSlots * 80;
         const svgHeight = 150 + (rounds * 60); 
         
@@ -63,9 +71,7 @@
         let slots = new Array(totalSlots).fill(null);
         for (let i = 0; i < n; i++) slots[i] = names[i];
 
-        // y座標の基準をSVGの高さから設定
         const baseLineY = svgHeight - 50;
-
         let nodes = slots.map((name, i) => {
             const x = (i * 80) + 40;
             if (name) {
@@ -84,7 +90,7 @@
             for (let i = 0; i < nodes.length; i += 2) {
                 const l = nodes[i], rNode = nodes[i+1];
                 const midX = (l.x + rNode.x) / 2;
-                const midY = l.y - 60; // 階層間の距離
+                const midY = l.y - 60;
 
                 if (l.active && rNode.active) {
                     const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
