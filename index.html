@@ -2,12 +2,16 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>公平なトーナメント表（修正版）</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>スマホ対応トーナメント表</title>
     <style>
-        body { font-family: sans-serif; background: #f0f4f8; padding: 20px; display: flex; flex-direction: column; align-items: center; }
-        .control-panel { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); width: 100%; max-width: 500px; margin-bottom: 20px; }
-        #canvas-container { background: white; padding: 20px; border-radius: 8px; overflow-x: auto; }
-        .player-text { font-size: 11px; font-weight: bold; fill: #333; }
+        body { font-family: sans-serif; background: #f0f4f8; margin: 0; padding: 10px; display: flex; flex-direction: column; align-items: center; }
+        .control-panel { background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); width: 100%; max-width: 500px; margin-bottom: 10px; }
+        .btn-container { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+        #canvas-container { width: 100%; max-width: 600px; background: white; padding: 10px; border-radius: 8px; box-sizing: border-box; }
+        #canvas-container svg { width: 100%; height: auto; display: block; }
+        .player-text { font-size: 10px; font-weight: bold; fill: #333; }
+        @media print { .control-panel { display: none; } }
     </style>
 </head>
 <body>
@@ -20,8 +24,12 @@
         </script>
     </select>
     <label style="display:block; margin-top:10px;">参加者名：</label>
-    <textarea id="player-names" style="width:100%; height:100px;"></textarea>
-    <button id="create-btn" style="width:100%; margin-top:10px; padding:10px;">トーナメント表を生成</button>
+    <textarea id="player-names" style="width:100%; height:80px; box-sizing: border-box;"></textarea>
+    
+    <div class="btn-container">
+        <button id="create-btn" style="padding:10px; cursor:pointer; background:#0f1e36; color:white; border:none;">トーナメントを作成</button>
+        <button onclick="window.print()" style="padding:10px; cursor:pointer;">印刷する</button>
+    </div>
 </div>
 
 <div id="canvas-container"></div>
@@ -44,42 +52,39 @@
         
         const rounds = Math.ceil(Math.log2(n));
         const totalSlots = Math.pow(2, rounds);
-        const byes = totalSlots - n;
-
+        
+        // 人数に応じて高さを動的に変更（最小200〜最大450）
+        const svgWidth = totalSlots * 80;
+        const svgHeight = 150 + (rounds * 60); 
+        
         const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-        svg.setAttribute("width", totalSlots * 80);
-        svg.setAttribute("height", 500);
+        svg.setAttribute("viewBox", `0 0 ${svgWidth} ${svgHeight}`);
 
-        // 公平な配置：左から「選手1」「選手2」... となるように配置
         let slots = new Array(totalSlots).fill(null);
-        // byesを考慮して選手を順番に配置
-        for (let i = 0; i < n; i++) {
-            // シードを配置する場所を計算（簡易的な均等配置）
-            const pos = (i < byes) ? i * 2 + 1 : (i - byes) + (Math.floor(byes/2) * 2);
-            // ※シンプルに左から順に並べるロジック
-            slots[i] = names[i];
-        }
+        for (let i = 0; i < n; i++) slots[i] = names[i];
+
+        // y座標の基準をSVGの高さから設定
+        const baseLineY = svgHeight - 50;
 
         let nodes = slots.map((name, i) => {
             const x = (i * 80) + 40;
             if (name) {
                 const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
-                text.setAttribute("x", x); text.setAttribute("y", 480);
+                text.setAttribute("x", x); text.setAttribute("y", baseLineY + 20);
                 text.setAttribute("text-anchor", "middle");
                 text.setAttribute("class", "player-text");
                 text.textContent = name;
                 svg.appendChild(text);
             }
-            return { x: x, y: 450, active: !!name };
+            return { x: x, y: baseLineY, active: !!name };
         });
 
-        // 階層描画
         for (let r = 0; r < rounds; r++) {
             const nextNodes = [];
             for (let i = 0; i < nodes.length; i += 2) {
                 const l = nodes[i], rNode = nodes[i+1];
                 const midX = (l.x + rNode.x) / 2;
-                const midY = l.y - 40;
+                const midY = l.y - 60; // 階層間の距離
 
                 if (l.active && rNode.active) {
                     const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
@@ -100,15 +105,13 @@
             }
             nodes = nextNodes;
         }
-
-        // 優勝者の縦線（太さを2pxに統一）
+        
         if (nodes.length > 0 && nodes[0].active) {
             const winner = nodes[0];
             const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
             line.setAttribute("x1", winner.x); line.setAttribute("y1", winner.y);
             line.setAttribute("x2", winner.x); line.setAttribute("y2", winner.y - 30);
-            line.setAttribute("stroke", "#000");
-            line.setAttribute("stroke-width", "2"); 
+            line.setAttribute("stroke", "#000"); line.setAttribute("stroke-width", "2");
             svg.appendChild(line);
         }
         container.appendChild(svg);
