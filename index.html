@@ -1,196 +1,115 @@
 <!DOCTYPE html>
-
 <html lang="ja">
-
 <head>
-
     <meta charset="UTF-8">
-
-    <title>トーナメント表</title>
-
+    <title>公平なトーナメント表</title>
     <style>
-
         body { font-family: sans-serif; background: #f1f5f9; padding: 20px; text-align: center; }
-
         .wrapper { background: #fff; padding: 40px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); display: inline-block; }
-
-        #tournament-svg { width: 800px; height: 600px; }
-
+        #tournament-svg { width: 800px; height: 500px; }
     </style>
-
 </head>
-
 <body>
-
     <div class="panel">
-
         <label>人数選択：</label>
-
         <select id="select-count" onchange="createTournament()"></select>
-
     </div>
-
     <div class="wrapper">
-
-        <svg id="tournament-svg" viewBox="0 0 800 600"></svg>
-
+        <svg id="tournament-svg" viewBox="0 0 800 500"></svg>
     </div>
-
-
 
     <script>
-
         const select = document.getElementById('select-count');
-
         const svg = document.getElementById('tournament-svg');
 
-
-
-        // プルダウン生成
-
-        for (let i = 3; i <= 6; i++) {
-
+        for (let i = 3; i <= 16; i++) {
             let opt = document.createElement('option');
-
             opt.value = i; opt.text = i + '人';
-
-            if (i === 6) opt.selected = true;
-
             select.appendChild(opt);
-
         }
-
-
-
-        // 線描画のヘルパー関数
-
-        const s = (x1, y1, x2, y2) => {
-
-            const l = document.createElementNS("http://www.w3.org/2000/svg", "line");
-
-            l.setAttribute("stroke", "black"); l.setAttribute("stroke-width", "2");
-
-            l.setAttribute("x1", x1); l.setAttribute("y1", y1);
-
-            l.setAttribute("x2", x2); l.setAttribute("y2", y2);
-
-            svg.appendChild(l);
-
-        };
-
-
-
-        // 選手名配置：各人数で最適な位置に配置
-
-        function drawPlayers(count, positions) {
-
-            for (let i = 0; i < count; i++) {
-
-                const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
-
-                text.setAttribute("x", positions[i]); text.setAttribute("y", 550);
-
-                text.setAttribute("text-anchor", "middle");
-
-                text.style.writingMode = "vertical-rl";
-
-                text.textContent = "選手 " + (i + 1);
-
-                svg.appendChild(text);
-
-            }
-
-        }
-
-
 
         function createTournament() {
-
             svg.innerHTML = '';
-
-            const count = parseInt(select.value);
-
+            const n = parseInt(select.value);
+            const size = Math.pow(2, Math.ceil(Math.log2(n)));
             
+            // 選手を配置する配列（size枠用意）
+            let bracket = Array(size).fill(null);
+            
+            // 公平な配置：シード枠を左右に分散させる順序
+            const order = [];
+            function generateOrder(arr) {
+                if (arr.length === 1) { order.push(arr[0]); return; }
+                let left = [], right = [];
+                for(let i=0; i<arr.length; i++) (i % 2 === 0 ? left : right).push(arr[i]);
+                generateOrder(left); generateOrder(right);
+            }
+            let indices = Array.from({length: size}, (_, i) => i);
+            generateOrder(indices);
 
-            switch(count) {
-
-                case 3: draw3(); drawPlayers(3, [200, 400, 600]); break;
-
-                case 4: draw4(); drawPlayers(4, [150, 250, 550, 650]); break;
-
-                case 5: draw5(); drawPlayers(5, [150, 250, 350, 500, 600]); break;
-
-                case 6: draw6(); drawPlayers(6, [150, 250, 350, 450, 550, 650]); break;
-
+            // 選手を配置（シードが固まらないように内側から埋める）
+            for (let i = 0; i < n; i++) {
+                bracket[order[i]] = i + 1;
             }
 
+            draw(bracket);
         }
 
+        function draw(bracket) {
+            const size = bracket.length;
+            const xStep = 750 / size;
+            const yBottom = 450;
+            
+            // 選手名の描画
+            bracket.forEach((p, i) => {
+                const x = 30 + i * xStep;
+                if (p) {
+                    const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                    text.setAttribute("x", x); text.setAttribute("y", 480);
+                    text.setAttribute("text-anchor", "middle");
+                    text.style.writingMode = "vertical-rl";
+                    text.textContent = "選手 " + p;
+                    svg.appendChild(text);
+                    line(x, yBottom, x, yBottom - 30);
+                }
+            });
 
+            // 線を描画
+            function drawTree(nodes) {
+                if (nodes.length <= 1) return;
+                let nextNodes = [];
+                for (let i = 0; i < nodes.length; i += 2) {
+                    let n1 = nodes[i], n2 = nodes[i+1];
+                    let midX = (n1.x + n2.x) / 2;
+                    let y = n1.y - 40;
+                    
+                    if (n1.active && n2.active) {
+                        line(n1.x, n1.y, n2.x, n2.y);
+                        line(midX, n1.y, midX, y);
+                        nextNodes.push({x: midX, y: y, active: true});
+                    } else {
+                        // どちらかがシードなら線をそのまま上げる
+                        let activeNode = n1.active ? n1 : n2;
+                        line(activeNode.x, activeNode.y, activeNode.x, y);
+                        nextNodes.push({x: activeNode.x, y: y, active: true});
+                    }
+                }
+                drawTree(nextNodes);
+            }
 
-        function draw3() {
-
-            s(200, 300, 400, 300); s(200, 300, 200, 450); s(400, 300, 400, 450);
-
-            s(300, 200, 300, 300); s(600, 450, 600, 200); s(300, 200, 600, 200);
-
-            s(450, 100, 450, 200);
-
+            let nodes = bracket.map((p, i) => ({x: 30 + i * xStep, y: yBottom - 30, active: p !== null}));
+            drawTree(nodes);
         }
 
-
-
-        function draw4() {
-
-            s(150, 300, 250, 300); s(150, 300, 150, 450); s(250, 300, 250, 450);
-
-            s(550, 300, 650, 300); s(550, 300, 550, 450); s(650, 300, 650, 450);
-
-            s(200, 200, 600, 200); s(200, 300, 200, 200); s(600, 300, 600, 200);
-
-            s(400, 100, 400, 200);
-
+        function line(x1, y1, x2, y2) {
+            const l = document.createElementNS("http://www.w3.org/2000/svg", "line");
+            l.setAttribute("stroke", "black"); l.setAttribute("stroke-width", "2");
+            l.setAttribute("x1", x1); l.setAttribute("y1", y1);
+            l.setAttribute("x2", x2); l.setAttribute("y2", y2);
+            svg.appendChild(l);
         }
-
-
-
-        function draw5() {
-
-            s(150,300,250,300); s(150,300,150,450); s(250,300,250,450);
-
-            s(200,200,350,200); s(200,300,200,200); s(350,450,350,200);
-
-            s(500,300,600,300); s(500,300,500,450); s(600,300,600,450);
-
-            s(550,200,550,300); s(275,100,550,100); s(275,100,275,200); s(550,100,550,200); s(412,100,412,50);
-
-        }
-
-
-
-        function draw6() {
-
-            s(150,300,250,300); s(150,300,150,450); s(250,300,250,450);
-
-            s(550,300,650,300); s(550,300,550,450); s(650,300,650,450);
-
-            s(200,200,350,200); s(450,200,600,200);
-
-            s(200,300,200,200); s(350,450,350,200);
-
-            s(450,450,450,200); s(600,300,600,200);
-
-            s(275,100,525,100); s(275,100,275,200); s(525,100,525,200); s(400,100,400,50);
-
-        }
-
-
 
         createTournament();
-
     </script>
-
 </body>
-
-</html> 
-
+</html>
