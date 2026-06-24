@@ -92,16 +92,16 @@
                 const x = startX + i * xStep + xStep/2;
                 const name = group[i];
                 if (name) {
-                    // 1文字ずつ改行して配置（縦書き対策）
-                    for (let j = 0; j < name.length; j++) {
-                        const t = document.createElementNS("http://www.w3.org/2000/svg", "text");
-                        t.setAttribute("x", x);
-                        t.setAttribute("y", baseY + 80 + (j * 35));
-                        t.setAttribute("text-anchor", "middle");
-                        t.style.fontSize = "30px";
-                        t.textContent = name[j];
-                        svg.appendChild(t);
-                    }
+                    // ブラウザ標準の縦書きモードを利用
+                    const t = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                    t.setAttribute("x", x);
+                    t.setAttribute("y", baseY + 80);
+                    t.setAttribute("text-anchor", "middle");
+                    t.style.fontSize = "30px";
+                    t.style.writingMode = "tb"; // 縦書き指定
+                    t.textContent = name;
+                    svg.appendChild(t);
+
                     line(x, baseY, x, baseY - LINE_H);
                     return { x, y: baseY - LINE_H, active: true };
                 }
@@ -139,7 +139,6 @@
             l.setAttribute("x2", x2); l.setAttribute("y2", y2);
             svg.appendChild(l);
         }
-        // 初回表示用
         window.onload = initNames;
     </script>
 </body>
