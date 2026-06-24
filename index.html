@@ -51,7 +51,7 @@
     </div>
 
     <script>
-        const LINE_H = 30;
+        const LINE_H = 40; 
         const svg = document.getElementById('tournament-svg');
         const nameArea = document.getElementById('name-area');
         const select = document.getElementById('select-count');
@@ -84,9 +84,7 @@
             if (n === 0) return;
             
             const mid = Math.ceil(n / 2);
-            
-            // 人数に応じて横幅を最適化 (最小500～最大900)
-            const totalWidth = Math.max(500, Math.min(900, n * 60));
+            const totalWidth = 900;
             const size = Math.pow(2, Math.ceil(Math.log2(n)));
             const xStep = totalWidth / size;
 
@@ -110,7 +108,9 @@
                     const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
                     text.setAttribute("x", x); text.setAttribute("y", baseY + 10);
                     text.style.writingMode = "vertical-rl";
-                    text.style.fontSize = "22px";
+                    // フォントサイズ 30px、太字なし
+                    text.style.fontSize = "30px";
+                    text.style.fontWeight = "normal";
                     text.textContent = name;
                     svg.appendChild(text);
                     line(x, baseY, x, baseY - LINE_H);
