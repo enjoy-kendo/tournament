@@ -11,8 +11,7 @@
         h2 { margin: 0 0 10px 0; font-size: 1.4rem; color: #333; text-align: left; }
         
         select, textarea { width: 100%; font-size: 18px; padding: 10px; box-sizing: border-box; }
-        /* 入力エリアを大幅に拡大 */
-        textarea { height: 400px; margin: 10px 0; resize: vertical; }
+        textarea { height: 310px; margin: 10px 0; resize: vertical; }
         
         .button-group { display: flex; gap: 10px; }
         button { flex: 1; padding: 12px; cursor: pointer; font-size: 18px; border-radius: 8px; border: none; color: white; font-weight: bold; }
@@ -45,8 +44,8 @@
             </div>
         </div>
         <div class="svg-container">
-            <svg id="tournament-svg" viewBox="0 0 800 350">
-                <text id="print-date" x="780" y="20" text-anchor="end"></text>
+            <svg id="tournament-svg" viewBox="0 0 900 350">
+                <text id="print-date" x="880" y="20" text-anchor="end"></text>
             </svg>
         </div>
     </div>
@@ -85,7 +84,7 @@
             if (n === 0) return;
             
             const mid = Math.ceil(n / 2);
-            const totalWidth = 700;
+            const totalWidth = 800; // viewBoxに合わせて調整
             const size = Math.pow(2, Math.ceil(Math.log2(n)));
             const xStep = totalWidth / size;
 
@@ -109,7 +108,8 @@
                     const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
                     text.setAttribute("x", x); text.setAttribute("y", baseY + 10);
                     text.style.writingMode = "vertical-rl";
-                    text.style.fontSize = "18px";
+                    // 選手名の文字サイズを 22px に拡大
+                    text.style.fontSize = "22px";
                     text.textContent = name;
                     svg.appendChild(text);
                     line(x, baseY, x, baseY - LINE_H);
