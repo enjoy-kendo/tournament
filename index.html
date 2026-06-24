@@ -11,7 +11,7 @@
         h2 { margin: 0 0 10px 0; font-size: 1.4rem; color: #333; text-align: left; }
         
         select, textarea { width: 100%; font-size: 18px; padding: 10px; box-sizing: border-box; }
-        textarea { height: 310px; margin: 10px 0; resize: vertical; }
+        textarea { height: 330px; margin: 10px 0; resize: vertical; }
         
         .button-group { display: flex; gap: 10px; }
         button { flex: 1; padding: 12px; cursor: pointer; font-size: 18px; border-radius: 8px; border: none; color: white; font-weight: bold; }
@@ -44,14 +44,14 @@
             </div>
         </div>
         <div class="svg-container">
-            <svg id="tournament-svg" viewBox="0 0 1000 400">
+            <svg id="tournament-svg" viewBox="0 0 1000 500">
                 <text id="print-date" x="980" y="20" text-anchor="end"></text>
             </svg>
         </div>
     </div>
 
     <script>
-        const LINE_H = 40; 
+        const LINE_H = 50;
         const svg = document.getElementById('tournament-svg');
         const nameArea = document.getElementById('name-area');
         const select = document.getElementById('select-count');
@@ -88,13 +88,15 @@
             const size = Math.pow(2, Math.ceil(Math.log2(n)));
             const xStep = totalWidth / size;
 
-            const rootA = drawBlock(names.slice(0, mid), 50, xStep, 250);
-            const rootB = drawBlock(names.slice(mid), 50 + mid * xStep, xStep, 250);
+            // 決勝線を表示するために位置を調整 (250 -> 300)
+            const rootA = drawBlock(names.slice(0, mid), 50, xStep, 300);
+            const rootB = drawBlock(names.slice(mid), 50 + mid * xStep, xStep, 300);
 
             const finalY = Math.min(rootA.y, rootB.y) - LINE_H;
             line(rootA.x, rootA.y, rootA.x, finalY);
             line(rootB.x, rootB.y, rootB.x, finalY);
             line(rootA.x, finalY, rootB.x, finalY);
+            // 優勝者の縦線
             line((rootA.x + rootB.x) / 2, finalY, (rootA.x + rootB.x) / 2, finalY - LINE_H);
         }
 
@@ -108,9 +110,7 @@
                     const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
                     text.setAttribute("x", x); text.setAttribute("y", baseY + 10);
                     text.style.writingMode = "vertical-rl";
-                    // フォントサイズ 30px、太字なし
-                    text.style.fontSize = "30px";
-                    text.style.fontWeight = "normal";
+                    text.style.fontSize = "40px";
                     text.textContent = name;
                     svg.appendChild(text);
                     line(x, baseY, x, baseY - LINE_H);
