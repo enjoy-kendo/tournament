@@ -2,36 +2,49 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>トーナメント作成ツール</title>
     <style>
+        /* 通常時のスタイル */
         body { font-family: sans-serif; background: #f1f5f9; padding: 10px; margin: 0; }
         .main-container { display: flex; flex-direction: column; align-items: center; gap: 10px; }
         .panel { background: #fff; padding: 15px; border-radius: 12px; width: 95%; max-width: 500px; }
-        h2 { margin: 0 0 10px 0; font-size: 1.2rem; color: #333; text-align: left; }
+        h2 { margin: 0 0 10px 0; font-size: 1.2rem; }
         select, textarea { width: 100%; font-size: 18px; padding: 10px; box-sizing: border-box; }
-        textarea { height: 350px; margin: 10px 0; resize: vertical; }
+        textarea { height: 350px; margin: 10px 0; }
         .button-group { display: flex; gap: 10px; }
         button { flex: 1; padding: 12px; cursor: pointer; font-size: 18px; border-radius: 8px; border: none; color: white; font-weight: bold; }
         .btn-apply { background-color: #2ecc71; }
         .btn-print { background-color: #3498db; }
         .svg-container { background: #fff; padding: 10px; border-radius: 12px; width: 95%; overflow: hidden; display: flex; justify-content: center; }
-        
+
+        /* 印刷時のスタイル */
         @media print {
+            /* 余白を最小限に */
             @page { size: A4 landscape; margin: 5mm; }
-            body, html { background: white; margin: 0; padding: 0; height: 100%; }
-            .panel { display: none !important; } /* パネルを確実に消す */
+            
+            /* ツールパネルを完全に削除 */
+            .panel { display: none !important; }
+            
+            /* SVGコンテナを画面いっぱいに広げる */
             .svg-container { 
-                display: block !important; 
-                width: 100% !important; 
-                height: 100% !important; 
-                margin: 0 !important; padding: 0 !important;
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                margin: 0 !important;
+                padding: 0 !important;
+                display: flex !important;
+                justify-content: center;
+                align-items: center;
             }
+
+            /* SVG自体のサイズ調整 */
             #tournament-svg { 
-                display: block !important; 
-                visibility: visible !important; 
-                width: 100% !important; 
-                height: 100% !important; 
+                width: 95% !important; 
+                height: 90% !important;
+                /* 上部にスペースを空けるための調整 */
+                margin-top: 10% !important;
             }
         }
     </style>
@@ -53,7 +66,7 @@
             <svg id="tournament-svg" viewBox="0 0 1000 600" preserveAspectRatio="xMidYMid meet"></svg>
         </div>
     </div>
-
+    
     <script>
         const LINE_H = 60;
         const svg = document.getElementById('tournament-svg');
