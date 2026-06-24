@@ -5,132 +5,97 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>トーナメント作成ツール</title>
     <style>
-        body { font-family: sans-serif; background: #f1f5f9; padding: 10px; margin: 0; }
-        .main-container { display: flex; flex-direction: column; align-items: center; gap: 10px; }
-        .panel { background: #fff; padding: 15px; border-radius: 12px; width: 95%; max-width: 500px; }
-        h2 { margin: 0 0 10px 0; font-size: 1.2rem; color: #333; text-align: center; }
-        select, textarea { width: 100%; font-size: 18px; padding: 10px; box-sizing: border-box; }
-        textarea { height: 350px; margin: 10px 0; resize: vertical; }
+        body { font-family: sans-serif; background: #f1f5f9; margin: 0; padding: 10px; }
+        .panel { background: #fff; padding: 15px; border-radius: 12px; width: 100%; max-width: 500px; margin: 0 auto 20px; }
+        select, textarea { width: 100%; padding: 10px; margin: 5px 0; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; }
         .button-group { display: flex; gap: 10px; }
-        button { flex: 1; padding: 12px; cursor: pointer; font-size: 18px; border-radius: 8px; border: none; color: white; font-weight: bold; }
+        button { flex: 1; padding: 12px; border: none; border-radius: 8px; color: white; font-weight: bold; cursor: pointer; }
         .btn-apply { background-color: #2ecc71; }
         .btn-print { background-color: #3498db; }
-        .svg-container { background: #fff; padding: 10px; border-radius: 12px; width: 95%; display: flex; justify-content: center; }
-        svg { width: 100%; height: auto; max-height: 85vh; }
-
-        @media print {
-            @page { size: A4 portrait; margin: 10mm; }
-            body { background: white; padding: 0; }
-            .panel { display: none; }
-            .svg-container { width: 100%; display: flex; justify-content: center; }
-        }
+        .svg-container { width: 100%; max-width: 800px; margin: 0 auto; background: white; padding: 10px; border-radius: 12px; }
+        svg { width: 100%; height: auto; display: block; }
     </style>
 </head>
 <body>
-    <div class="main-container">
-        <div class="panel">
-            <h2>トーナメント作成ツール</h2>
-            <select id="select-count" onchange="initNames()">
-                <script>for(let i=3; i<=16; i++) document.write(`<option value="${i}">${i}人</option>`);</script>
-            </select>
-            <textarea id="name-area" placeholder="選手1&#10;選手2&#10;選手3..."></textarea>
-            <div class="button-group">
-                <button class="btn-apply" onclick="createTournament()">名前を反映</button>
-                <button class="btn-print" onclick="window.print()">印刷</button>
-            </div>
+    <div class="panel">
+        <select id="select-count" onchange="createTournament()">
+            <script>for(let i=3; i<=16; i++) document.write(`<option value="${i}">${i}人</option>`);</script>
+        </select>
+        <textarea id="name-area" placeholder="選手名を入力" style="height:100px"></textarea>
+        <div class="button-group">
+            <button class="btn-apply" onclick="createTournament()">反映</button>
+            <button class="btn-print" onclick="window.print()">印刷</button>
         </div>
-        <div class="svg-container">
-            <svg id="tournament-svg" viewBox="0 0 1000 600"></svg>
-        </div>
+    </div>
+    <div class="svg-container">
+        <svg id="tournament-svg" viewBox="0 0 1000 600"></svg>
     </div>
 
     <script>
-        const LINE_H = 60;
         const svg = document.getElementById('tournament-svg');
         const nameArea = document.getElementById('name-area');
         const select = document.getElementById('select-count');
-
-        function initNames() { createTournament(); }
+        const LINE_H = 60;
 
         function createTournament() {
-            let input = nameArea.value.trim();
-            const names = input === "" ? Array.from({length: parseInt(select.value)}, (_, i) => "選手 " + (i + 1)) : input.split('\n').filter(s => s.trim() !== "");
-            const n = names.length;
-            if (n === 0) return;
-
-            // 【改善点】人数に合わせてviewBoxの横幅を最適化
-            const size = Math.pow(2, Math.ceil(Math.log2(n)));
-            const viewBoxWidth = (size > 8) ? 1000 : (size > 4 ? 700 : 500);
-            svg.setAttribute("viewBox", `0 0 ${viewBoxWidth} 600`);
-
             svg.innerHTML = "";
+            let names = nameArea.value.trim().split('\n').filter(s => s.trim() !== "");
+            if(names.length === 0) names = Array.from({length: parseInt(select.value)}, (_, i) => "選手" + (i + 1));
+            
+            const n = names.length;
             const mid = Math.ceil(n / 2);
-            const xStep = (viewBoxWidth - 100) / size;
+            const xStep = 900 / Math.max(mid, n - mid);
             const baseY = 350;
 
-            const rootA = drawBlock(names.slice(0, mid), 50, xStep, baseY);
-            const rootB = drawBlock(names.slice(mid), 50 + mid * xStep, xStep, baseY);
+            function drawBlock(group, startX) {
+                let nodes = group.map((name, i) => {
+                    const x = startX + i * xStep + xStep / 2;
+                    name.split('').forEach((char, j) => {
+                        const t = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                        t.setAttribute("x", x); t.setAttribute("y", baseY + 80 + (j * 35));
+                        t.setAttribute("text-anchor", "middle"); t.style.fontSize = "30px";
+                        t.textContent = char === 'ー' ? 'ー' : char;
+                        if(char === 'ー') t.setAttribute("transform", `rotate(90, ${x}, ${baseY + 70 + (j * 35)})`);
+                        svg.appendChild(t);
+                    });
+                    line(x, baseY, x, baseY - LINE_H);
+                    return { x, y: baseY - LINE_H };
+                });
 
+                function build(curr) {
+                    if (curr.length === 1) return curr[0];
+                    let next = [];
+                    for (let i = 0; i < curr.length; i += 2) {
+                        let n1 = curr[i], n2 = curr[i+1] || {x: curr[i].x + xStep, y: curr[i].y};
+                        let x = (n1.x + n2.x) / 2;
+                        let y = n1.y - LINE_H;
+                        line(n1.x, n1.y, n1.x, y); line(n2.x, n2.y, n2.x, y);
+                        line(n1.x, y, n2.x, y);
+                        next.push({x, y});
+                    }
+                    return build(next);
+                }
+                return build(nodes);
+            }
+
+            function line(x1, y1, x2, y2) {
+                const l = document.createElementNS("http://www.w3.org/2000/svg", "line");
+                l.setAttribute("stroke", "black"); l.setAttribute("stroke-width", "2");
+                l.setAttribute("x1", x1); l.setAttribute("y1", y1);
+                l.setAttribute("x2", x2); l.setAttribute("y2", y2);
+                svg.appendChild(l);
+            }
+
+            const rootA = drawBlock(names.slice(0, mid), 50);
+            const rootB = drawBlock(names.slice(mid), 50 + mid * xStep);
+            
             const finalY = Math.min(rootA.y, rootB.y) - LINE_H;
             line(rootA.x, rootA.y, rootA.x, finalY);
             line(rootB.x, rootB.y, rootB.x, finalY);
             line(rootA.x, finalY, rootB.x, finalY);
             line((rootA.x + rootB.x) / 2, finalY, (rootA.x + rootB.x) / 2, finalY - LINE_H);
         }
-
-        function drawBlock(group, startX, xStep, baseY) {
-            const size = Math.pow(2, Math.ceil(Math.log2(group.length)));
-            let nodes = Array(size).fill(null).map((_, i) => {
-                const x = startX + i * xStep + xStep/2;
-                const name = group[i];
-                if (name) {
-                    for (let j = 0; j < name.length; j++) {
-                        const yPos = baseY + 80 + (j * 35);
-                        const t = document.createElementNS("http://www.w3.org/2000/svg", "text");
-                        t.setAttribute("x", x); t.setAttribute("y", yPos);
-                        t.setAttribute("text-anchor", "middle"); t.style.fontSize = "30px";
-                        if (name[j] === 'ー') {
-                            t.textContent = 'ー'; t.setAttribute("transform", `rotate(90, ${x}, ${yPos - 10})`);
-                        } else { t.textContent = name[j]; }
-                        svg.appendChild(t);
-                    }
-                    line(x, baseY, x, baseY - LINE_H);
-                    return { x, y: baseY - LINE_H, active: true };
-                }
-                return { x, y: baseY - LINE_H, active: false };
-            });
-
-            function build(curr) {
-                if (curr.length === 1) return curr[0];
-                let next = [];
-                for (let i = 0; i < curr.length; i += 2) {
-                    let n1 = curr[i], n2 = curr[i+1];
-                    let x = (n1.x + n2.x) / 2;
-                    let y = n1.y - LINE_H;
-                    if (n1.active && n2.active) {
-                        line(n1.x, n1.y, n1.x, y); line(n2.x, n2.y, n2.x, y);
-                        line(n1.x, y, n2.x, y);
-                        next.push({x, y, active: true});
-                    } else if (n1.active || n2.active) {
-                        let act = n1.active ? n1 : n2;
-                        line(act.x, act.y, act.x, y);
-                        next.push({x: act.x, y, active: true});
-                    } else {
-                        next.push({x, y, active: false});
-                    }
-                }
-                return build(next);
-            }
-            return build(nodes);
-        }
-        function line(x1, y1, x2, y2) {
-            const l = document.createElementNS("http://www.w3.org/2000/svg", "line");
-            l.setAttribute("stroke", "black"); l.setAttribute("stroke-width", "2");
-            l.setAttribute("x1", x1); l.setAttribute("y1", y1);
-            l.setAttribute("x2", x2); l.setAttribute("y2", y2);
-            svg.appendChild(l);
-        }
-        window.onload = initNames;
+        window.onload = createTournament;
     </script>
 </body>
 </html>
