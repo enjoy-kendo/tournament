@@ -5,46 +5,31 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>均衡トーナメント表</title>
     <style>
-        body { font-family: sans-serif; background: #f1f5f9; padding: 15px; margin: 0; font-size: 18px; }
-        .main-container { display: flex; flex-direction: column; align-items: center; gap: 15px; }
-        .panel { background: #fff; padding: 20px; border-radius: 12px; width: 95%; max-width: 450px; }
-        h2 { margin: 0 0 15px 0; font-size: 1.4rem; color: #333; text-align: left; }
+        body { font-family: sans-serif; background: #f1f5f9; padding: 10px; margin: 0; font-size: 18px; }
+        .main-container { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+        .panel { background: #fff; padding: 15px; border-radius: 12px; width: 95%; max-width: 500px; }
+        h2 { margin: 0 0 10px 0; font-size: 1.4rem; color: #333; text-align: left; }
         
         select, textarea { width: 100%; font-size: 18px; padding: 10px; box-sizing: border-box; }
-        textarea { height: 250px; margin: 15px 0; }
+        /* 入力エリアを大幅に拡大 */
+        textarea { height: 400px; margin: 10px 0; resize: vertical; }
         
-        .button-group { display: flex; gap: 15px; }
-        
-        button { 
-            flex: 1; 
-            padding: 15px; 
-            cursor: pointer; 
-            font-size: 18px; 
-            border-radius: 8px; 
-            border: none; 
-            color: white; 
-            font-weight: bold;
-        }
-
-        /* 名前を反映ボタン（緑） */
+        .button-group { display: flex; gap: 10px; }
+        button { flex: 1; padding: 12px; cursor: pointer; font-size: 18px; border-radius: 8px; border: none; color: white; font-weight: bold; }
         .btn-apply { background-color: #2ecc71; }
-        .btn-apply:hover { background-color: #27ae60; }
-
-        /* 印刷ボタン（青） */
         .btn-print { background-color: #3498db; }
-        .btn-print:hover { background-color: #2980b9; }
 
-        .svg-container { background: #fff; padding: 20px; border-radius: 12px; width: 95%; max-width: 700px; display: flex; justify-content: center; }
-        svg { width: 100%; height: auto; }
+        .svg-container { background: #fff; padding: 10px; border-radius: 12px; width: 95%; overflow: hidden; display: flex; justify-content: center; }
+        svg { width: 100%; height: auto; max-height: 85vh; }
 
         #print-date { display: none; }
 
         @media print {
-            body { background: white; padding: 0; font-size: 12pt; }
+            body { background: white; padding: 0; }
             .panel { display: none; }
-            .svg-container { width: 100%; max-width: none; box-shadow: none; }
+            .svg-container { width: 100%; padding: 0; }
             #print-date { display: block; font-size: 16px; }
-            @page { size: A4 portrait; margin: 20mm; }
+            @page { size: A4 landscape; margin: 10mm; }
         }
     </style>
 </head>
@@ -60,15 +45,14 @@
             </div>
         </div>
         <div class="svg-container">
-            <svg id="tournament-svg" viewBox="0 0 700 350">
-                <text id="print-date" x="680" y="20" text-anchor="end"></text>
+            <svg id="tournament-svg" viewBox="0 0 800 350">
+                <text id="print-date" x="780" y="20" text-anchor="end"></text>
             </svg>
         </div>
     </div>
 
     <script>
-        const LINE_H = 25;
-        const FINAL_LINE_H = 30;
+        const LINE_H = 30;
         const svg = document.getElementById('tournament-svg');
         const nameArea = document.getElementById('name-area');
         const select = document.getElementById('select-count');
@@ -101,23 +85,23 @@
             if (n === 0) return;
             
             const mid = Math.ceil(n / 2);
-            const totalWidth = 600;
+            const totalWidth = 700;
             const size = Math.pow(2, Math.ceil(Math.log2(n)));
             const xStep = totalWidth / size;
 
-            const rootA = drawBlock(names.slice(0, mid), 50, xStep);
-            const rootB = drawBlock(names.slice(mid), 50 + mid * xStep, xStep);
+            const rootA = drawBlock(names.slice(0, mid), 50, xStep, 200);
+            const rootB = drawBlock(names.slice(mid), 50 + mid * xStep, xStep, 200);
 
-            const finalY = Math.min(rootA.y, rootB.y) - FINAL_LINE_H;
+            const finalY = Math.min(rootA.y, rootB.y) - LINE_H;
             line(rootA.x, rootA.y, rootA.x, finalY);
             line(rootB.x, rootB.y, rootB.x, finalY);
             line(rootA.x, finalY, rootB.x, finalY);
-            line((rootA.x + rootB.x) / 2, finalY, (rootA.x + rootB.x) / 2, finalY - FINAL_LINE_H);
+            line((rootA.x + rootB.x) / 2, finalY, (rootA.x + rootB.x) / 2, finalY - LINE_H);
         }
 
-        function drawBlock(group, startX, xStep) {
+        function drawBlock(group, startX, xStep, baseY) {
             const size = Math.pow(2, Math.ceil(Math.log2(group.length)));
-            const baseY = 300;
+            
             let nodes = Array(size).fill(null).map((_, i) => {
                 const x = startX + i * xStep + xStep/2;
                 const name = group[i];
