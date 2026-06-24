@@ -92,16 +92,23 @@
                 const x = startX + i * xStep + xStep/2;
                 const name = group[i];
                 if (name) {
-                    // ブラウザ標準の縦書きモードを利用
-                    const t = document.createElementNS("http://www.w3.org/2000/svg", "text");
-                    t.setAttribute("x", x);
-                    t.setAttribute("y", baseY + 80);
-                    t.setAttribute("text-anchor", "middle");
-                    t.style.fontSize = "30px";
-                    t.style.writingMode = "tb"; // 縦書き指定
-                    t.textContent = name;
-                    svg.appendChild(t);
-
+                    for (let j = 0; j < name.length; j++) {
+                        const yPos = baseY + 80 + (j * 35);
+                        const t = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                        t.setAttribute("x", x);
+                        t.setAttribute("y", yPos);
+                        t.setAttribute("text-anchor", "middle");
+                        t.style.fontSize = "30px";
+                        
+                        // ここで「ー」を回転させる処理のみ追加
+                        if (name[j] === 'ー') {
+                            t.textContent = 'ー';
+                            t.setAttribute("transform", `rotate(90, ${x}, ${yPos - 10})`);
+                        } else {
+                            t.textContent = name[j];
+                        }
+                        svg.appendChild(t);
+                    }
                     line(x, baseY, x, baseY - LINE_H);
                     return { x, y: baseY - LINE_H, active: true };
                 }
