@@ -2,49 +2,34 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>トーナメント作成ツール</title>
     <style>
-        /* 通常時のスタイル */
         body { font-family: sans-serif; background: #f1f5f9; padding: 10px; margin: 0; }
-        .main-container { display: flex; flex-direction: column; align-items: center; gap: 10px; }
-        .panel { background: #fff; padding: 15px; border-radius: 12px; width: 95%; max-width: 500px; }
+        .main-container { display: flex; flex-direction: column; align-items: center; }
+        .panel { background: #fff; padding: 15px; border-radius: 12px; width: 100%; max-width: 500px; box-sizing: border-box; }
         h2 { margin: 0 0 10px 0; font-size: 1.2rem; }
         select, textarea { width: 100%; font-size: 18px; padding: 10px; box-sizing: border-box; }
-        textarea { height: 350px; margin: 10px 0; }
+        textarea { height: 300px; margin: 10px 0; }
         .button-group { display: flex; gap: 10px; }
         button { flex: 1; padding: 12px; cursor: pointer; font-size: 18px; border-radius: 8px; border: none; color: white; font-weight: bold; }
         .btn-apply { background-color: #2ecc71; }
         .btn-print { background-color: #3498db; }
-        .svg-container { background: #fff; padding: 10px; border-radius: 12px; width: 95%; overflow: hidden; display: flex; justify-content: center; }
+        .svg-container { width: 100%; max-width: 1000px; overflow: hidden; }
 
-        /* 印刷時のスタイル */
+        /* 印刷用 */
         @media print {
-            /* 余白を最小限に */
             @page { size: A4 landscape; margin: 5mm; }
-            
-            /* ツールパネルを完全に削除 */
+            body { background: white; padding: 0; }
             .panel { display: none !important; }
-            
-            /* SVGコンテナを画面いっぱいに広げる */
-            .svg-container { 
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                margin: 0 !important;
-                padding: 0 !important;
-                display: flex !important;
-                justify-content: center;
-                align-items: center;
+            .svg-container {
+                width: 100% !important;
+                margin-top: 80px !important; /* 印刷時の上の余白 */
             }
-
-            /* SVG自体のサイズ調整 */
-            #tournament-svg { 
-                width: 95% !important; 
-                height: 90% !important;
-                /* 上部にスペースを空けるための調整 */
-                margin-top: 10% !important;
+            #tournament-svg {
+                width: 100% !important;
+                height: auto !important;
+                display: block !important;
             }
         }
     </style>
@@ -99,6 +84,7 @@
             line(rootA.x, finalY, rootB.x, finalY);
             line((rootA.x + rootB.x) / 2, finalY, (rootA.x + rootB.x) / 2, finalY - LINE_H);
 
+            // 日付表示の追加
             const dateText = document.createElementNS("http://www.w3.org/2000/svg", "text");
             dateText.setAttribute("x", "980");
             dateText.setAttribute("y", "30");
@@ -117,16 +103,11 @@
                     const t = document.createElementNS("http://www.w3.org/2000/svg", "text");
                     t.setAttribute("x", x); t.setAttribute("y", yPos);
                     t.setAttribute("text-anchor", "middle"); t.style.fontSize = "30px";
-                    if (name[j] === 'ー') {
-                        t.textContent = 'ー'; 
-                        t.setAttribute("transform", `rotate(90, ${x}, ${yPos - 10})`);
-                    } else { 
-                        t.textContent = name[j]; 
-                    }
+                    t.textContent = name[j];
                     svg.appendChild(t);
                 }
                 line(x, baseY, x, baseY - LINE_H);
-                return { x, y: baseY - LINE_H, active: true };
+                return { x, y: baseY - LINE_H };
             });
 
             function build(curr) {
@@ -139,10 +120,8 @@
                         let y = n1.y - LINE_H;
                         line(n1.x, n1.y, n1.x, y); line(n2.x, n2.y, n2.x, y);
                         line(n1.x, y, n2.x, y);
-                        next.push({x, y, active: true});
-                    } else {
-                        next.push(curr[i]);
-                    }
+                        next.push({x, y});
+                    } else { next.push(curr[i]); }
                 }
                 return build(next);
             }
@@ -152,8 +131,7 @@
         function line(x1, y1, x2, y2) {
             const l = document.createElementNS("http://www.w3.org/2000/svg", "line");
             l.setAttribute("stroke", "black"); l.setAttribute("stroke-width", "2");
-            l.setAttribute("x1", x1); l.setAttribute("y1", y1);
-            l.setAttribute("x2", x2); l.setAttribute("y2", y2);
+            l.setAttribute("x1", x1); l.setAttribute("y1", y1); l.setAttribute("x2", x2); l.setAttribute("y2", y2);
             svg.appendChild(l);
         }
         window.onload = initNames;
