@@ -44,8 +44,8 @@
             </div>
         </div>
         <div class="svg-container">
-            <svg id="tournament-svg" viewBox="0 0 900 350">
-                <text id="print-date" x="880" y="20" text-anchor="end"></text>
+            <svg id="tournament-svg" viewBox="0 0 1000 400">
+                <text id="print-date" x="980" y="20" text-anchor="end"></text>
             </svg>
         </div>
     </div>
@@ -84,12 +84,14 @@
             if (n === 0) return;
             
             const mid = Math.ceil(n / 2);
-            const totalWidth = 800; // viewBoxに合わせて調整
+            
+            // 人数に応じて横幅を最適化 (最小500～最大900)
+            const totalWidth = Math.max(500, Math.min(900, n * 60));
             const size = Math.pow(2, Math.ceil(Math.log2(n)));
             const xStep = totalWidth / size;
 
-            const rootA = drawBlock(names.slice(0, mid), 50, xStep, 200);
-            const rootB = drawBlock(names.slice(mid), 50 + mid * xStep, xStep, 200);
+            const rootA = drawBlock(names.slice(0, mid), 50, xStep, 250);
+            const rootB = drawBlock(names.slice(mid), 50 + mid * xStep, xStep, 250);
 
             const finalY = Math.min(rootA.y, rootB.y) - LINE_H;
             line(rootA.x, rootA.y, rootA.x, finalY);
@@ -108,7 +110,6 @@
                     const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
                     text.setAttribute("x", x); text.setAttribute("y", baseY + 10);
                     text.style.writingMode = "vertical-rl";
-                    // 選手名の文字サイズを 22px に拡大
                     text.style.fontSize = "22px";
                     text.textContent = name;
                     svg.appendChild(text);
