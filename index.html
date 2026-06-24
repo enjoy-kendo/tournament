@@ -16,14 +16,25 @@
         .btn-apply { background-color: #2ecc71; }
         .btn-print { background-color: #3498db; }
         .svg-container { background: #fff; padding: 10px; border-radius: 12px; width: 95%; overflow: hidden; display: flex; justify-content: center; }
-        svg { width: 100%; height: auto; max-height: 85vh; }
-
+        
         @media print {
-            @page { size: A4 landscape; margin: 5mm; }
-            body { background: white; padding: 0; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+            /* 【変更箇所】余白を少し詰め、高さを制限して1ページに収める */
+            @page { size: A4 portrait; margin: 5mm; }
+            body { background: white; padding: 0; margin: 0; overflow: hidden; }
             .panel { display: none; }
-            .svg-container { width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; }
-            svg { width: 100%; height: 100%; max-width: 100vw; max-height: 100vh; }
+            .svg-container { 
+                width: 100%; 
+                height: 98vh; /* 少し高さを小さくして2ページ目を防ぐ */
+                display: flex; 
+                justify-content: center; 
+                align-items: center; 
+                overflow: hidden;
+            }
+            svg { 
+                width: 100%; 
+                height: auto; 
+                max-height: 100%; 
+            }
         }
     </style>
 </head>
@@ -67,16 +78,14 @@
             const mid = Math.ceil(n / 2);
             const size = Math.pow(2, Math.ceil(Math.log2(n)));
             const xStep = 900 / size;
-            const baseY = 400;
+            const baseY = 350;
             const rootA = drawBlock(names.slice(0, mid), 50, xStep, baseY);
             const rootB = drawBlock(names.slice(mid), 50 + mid * xStep, xStep, baseY);
 
-            // 優勝への中央結合線を確実に描画
             const finalY = Math.min(rootA.y, rootB.y) - LINE_H;
             line(rootA.x, rootA.y, rootA.x, finalY);
             line(rootB.x, rootB.y, rootB.x, finalY);
             line(rootA.x, finalY, rootB.x, finalY);
-            // 優勝の縦棒
             line((rootA.x + rootB.x) / 2, finalY, (rootA.x + rootB.x) / 2, finalY - LINE_H);
         }
 
@@ -87,7 +96,7 @@
                 const name = group[i];
                 if (name) {
                     for (let j = 0; j < name.length; j++) {
-                        const yPos = baseY + 50 + (j * 35);
+                        const yPos = baseY + 80 + (j * 35);
                         const t = document.createElementNS("http://www.w3.org/2000/svg", "text");
                         t.setAttribute("x", x); t.setAttribute("y", yPos);
                         t.setAttribute("text-anchor", "middle"); t.style.fontSize = "30px";
