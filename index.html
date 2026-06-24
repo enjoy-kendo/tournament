@@ -9,22 +9,21 @@
         .main-container { display: flex; flex-direction: column; align-items: center; gap: 10px; }
         .panel { background: #fff; padding: 15px; border-radius: 12px; width: 95%; max-width: 500px; }
         h2 { margin: 0 0 10px 0; font-size: 1.2rem; color: #333; text-align: center; }
-        
         select, textarea { width: 100%; font-size: 18px; padding: 10px; box-sizing: border-box; }
         textarea { height: 350px; margin: 10px 0; resize: vertical; }
-        
         .button-group { display: flex; gap: 10px; }
         button { flex: 1; padding: 12px; cursor: pointer; font-size: 18px; border-radius: 8px; border: none; color: white; font-weight: bold; }
         .btn-apply { background-color: #2ecc71; }
         .btn-print { background-color: #3498db; }
-
         .svg-container { background: #fff; padding: 10px; border-radius: 12px; width: 95%; overflow: hidden; display: flex; justify-content: center; }
         svg { width: 100%; height: auto; max-height: 85vh; }
 
         @media print {
-            body { background: white; padding: 0; }
+            @page { size: A4 landscape; margin: 5mm; }
+            body { background: white; padding: 0; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
             .panel { display: none; }
-            .svg-container { width: 100%; padding: 0; }
+            .svg-container { width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; }
+            svg { width: 100%; height: 100%; max-width: 100vw; max-height: 100vh; }
         }
     </style>
 </head>
@@ -33,11 +32,9 @@
         <div class="panel">
             <h2>トーナメント作成ツール</h2>
             <select id="select-count" onchange="initNames()">
-                <script>
-                    for(let i=3; i<=16; i++) document.write(`<option value="${i}">${i}人</option>`);
-                </script>
+                <script>for(let i=3; i<=16; i++) document.write(`<option value="${i}">${i}人</option>`);</script>
             </select>
-            <textarea id="name-area" placeholder="選手1&#10;選手2&#10;選手3&#10;..."></textarea>
+            <textarea id="name-area" placeholder="選手1&#10;選手2&#10;選手3..."></textarea>
             <div class="button-group">
                 <button class="btn-apply" onclick="createTournament()">名前を反映</button>
                 <button class="btn-print" onclick="window.print()">印刷</button>
@@ -54,9 +51,7 @@
         const nameArea = document.getElementById('name-area');
         const select = document.getElementById('select-count');
 
-        function initNames() {
-            createTournament();
-        }
+        function initNames() { createTournament(); }
 
         function createTournament() {
             svg.innerHTML = "";
@@ -65,7 +60,6 @@
                 const n = parseInt(select.value);
                 input = Array.from({length: n}, (_, i) => "選手 " + (i + 1)).join('\n');
             }
-
             const names = input.split('\n').filter(s => s.trim() !== "");
             const n = names.length;
             if (n === 0) return;
@@ -73,40 +67,33 @@
             const mid = Math.ceil(n / 2);
             const size = Math.pow(2, Math.ceil(Math.log2(n)));
             const xStep = 900 / size;
-
-            const baseY = 350;
+            const baseY = 400;
             const rootA = drawBlock(names.slice(0, mid), 50, xStep, baseY);
             const rootB = drawBlock(names.slice(mid), 50 + mid * xStep, xStep, baseY);
 
+            // 優勝への中央結合線を確実に描画
             const finalY = Math.min(rootA.y, rootB.y) - LINE_H;
             line(rootA.x, rootA.y, rootA.x, finalY);
             line(rootB.x, rootB.y, rootB.x, finalY);
             line(rootA.x, finalY, rootB.x, finalY);
+            // 優勝の縦棒
             line((rootA.x + rootB.x) / 2, finalY, (rootA.x + rootB.x) / 2, finalY - LINE_H);
         }
 
         function drawBlock(group, startX, xStep, baseY) {
             const size = Math.pow(2, Math.ceil(Math.log2(group.length)));
-            
             let nodes = Array(size).fill(null).map((_, i) => {
                 const x = startX + i * xStep + xStep/2;
                 const name = group[i];
                 if (name) {
                     for (let j = 0; j < name.length; j++) {
-                        const yPos = baseY + 80 + (j * 35);
+                        const yPos = baseY + 50 + (j * 35);
                         const t = document.createElementNS("http://www.w3.org/2000/svg", "text");
-                        t.setAttribute("x", x);
-                        t.setAttribute("y", yPos);
-                        t.setAttribute("text-anchor", "middle");
-                        t.style.fontSize = "30px";
-                        
-                        // ここで「ー」を回転させる処理のみ追加
+                        t.setAttribute("x", x); t.setAttribute("y", yPos);
+                        t.setAttribute("text-anchor", "middle"); t.style.fontSize = "30px";
                         if (name[j] === 'ー') {
-                            t.textContent = 'ー';
-                            t.setAttribute("transform", `rotate(90, ${x}, ${yPos - 10})`);
-                        } else {
-                            t.textContent = name[j];
-                        }
+                            t.textContent = 'ー'; t.setAttribute("transform", `rotate(90, ${x}, ${yPos - 10})`);
+                        } else { t.textContent = name[j]; }
                         svg.appendChild(t);
                     }
                     line(x, baseY, x, baseY - LINE_H);
@@ -138,7 +125,6 @@
             }
             return build(nodes);
         }
-
         function line(x1, y1, x2, y2) {
             const l = document.createElementNS("http://www.w3.org/2000/svg", "line");
             l.setAttribute("stroke", "black"); l.setAttribute("stroke-width", "2");
