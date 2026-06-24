@@ -5,14 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>均衡トーナメント表</title>
     <style>
-        body { font-family: "Hiragino Kaku Gothic ProN", "Yu Gothic", Meiryo, sans-serif; background: #f1f5f9; padding: 10px; margin: 0; font-size: 18px; }
+        body { font-family: sans-serif; background: #f1f5f9; padding: 10px; margin: 0; }
         .main-container { display: flex; flex-direction: column; align-items: center; gap: 10px; }
         .panel { background: #fff; padding: 15px; border-radius: 12px; width: 95%; max-width: 500px; }
-        h2 { margin: 0 0 10px 0; font-size: 1.1rem; color: #333; text-align: left; }
+        h2 { margin: 0 0 10px 0; font-size: 1.1rem; color: #333; }
         
         select, textarea { width: 100%; font-size: 18px; padding: 10px; box-sizing: border-box; }
+        /* 入力エリアの高さを350pxに変更 */
         textarea { height: 350px; margin: 10px 0; resize: vertical; }
-        textarea::placeholder { color: #a0a0a0; }
         
         .button-group { display: flex; gap: 10px; }
         button { flex: 1; padding: 12px; cursor: pointer; font-size: 18px; border-radius: 8px; border: none; color: white; font-weight: bold; }
@@ -22,14 +22,10 @@
         .svg-container { background: #fff; padding: 10px; border-radius: 12px; width: 95%; overflow: hidden; display: flex; justify-content: center; }
         svg { width: 100%; height: auto; max-height: 85vh; }
 
-        #print-date { display: none; }
-
         @media print {
-            body { background: white; padding: 0; display: flex; justify-content: center; align-items: center; height: 100vh; }
+            body { background: white; padding: 0; }
             .panel { display: none; }
-            .svg-container { width: 100%; padding: 0; border-radius: 0; box-shadow: none; display: flex; justify-content: center; }
-            #print-date { display: block; font-size: 20px; }
-            @page { size: A4 landscape; margin: 20mm; }
+            .svg-container { width: 100%; padding: 0; }
         }
     </style>
 </head>
@@ -41,13 +37,11 @@
             <textarea id="name-area" placeholder="選手1&#10;選手2&#10;選手3&#10;..."></textarea>
             <div class="button-group">
                 <button class="btn-apply" onclick="createTournament()">名前を反映</button>
-                <button class="btn-print" onclick="printTournament()">印刷</button>
+                <button class="btn-print" onclick="window.print()">印刷</button>
             </div>
         </div>
         <div class="svg-container">
-            <svg id="tournament-svg" viewBox="0 0 1000 600">
-                <text id="print-date" x="980" y="50" text-anchor="end"></text>
-            </svg>
+            <svg id="tournament-svg" viewBox="0 0 1000 600"></svg>
         </div>
     </div>
 
@@ -64,21 +58,11 @@
         }
 
         function initNames() {
-            nameArea.value = "";
             createTournament();
         }
 
-        function printTournament() {
-            const date = new Date();
-            const dateStr = date.getFullYear() + "年" + (date.getMonth() + 1) + "月" + date.getDate() + "日";
-            document.getElementById('print-date').textContent = "作成日: " + dateStr;
-            window.print();
-        }
-
         function createTournament() {
-            const nodes = svg.querySelectorAll('line, text:not(#print-date)');
-            nodes.forEach(n => n.remove());
-
+            svg.innerHTML = "";
             let input = nameArea.value.trim();
             if (input === "") {
                 const n = parseInt(select.value);
@@ -90,9 +74,7 @@
             if (n === 0) return;
             
             const mid = Math.ceil(n / 2);
-            const totalWidth = 900;
-            const size = Math.pow(2, Math.ceil(Math.log2(n)));
-            const xStep = totalWidth / size;
+            const xStep = 900 / Math.pow(2, Math.ceil(Math.log2(n)));
 
             const baseY = 350;
             const rootA = drawBlock(names.slice(0, mid), 50, xStep, baseY);
@@ -112,16 +94,15 @@
                 const x = startX + i * xStep + xStep/2;
                 const name = group[i];
                 if (name) {
-                    const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
-                    text.setAttribute("x", x);
-                    // 【修正箇所】ここで表示位置を下げています
-                    text.setAttribute("y", baseY + 80); 
-                    text.style.writingMode = "tb";
-                    text.style.glyphOrientationVertical = "0";
-                    text.style.fontSize = "40px";
-                    text.style.textAnchor = "middle";
-                    text.textContent = name;
-                    svg.appendChild(text);
+                    for (let j = 0; j < name.length; j++) {
+                        const t = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                        t.setAttribute("x", x);
+                        t.setAttribute("y", baseY + 80 + (j * 40));
+                        t.setAttribute("text-anchor", "middle");
+                        t.style.fontSize = "35px";
+                        t.textContent = name[j];
+                        svg.appendChild(t);
+                    }
                     line(x, baseY, x, baseY - LINE_H);
                     return { x, y: baseY - LINE_H, active: true };
                 }
@@ -159,7 +140,7 @@
             l.setAttribute("x2", x2); l.setAttribute("y2", y2);
             svg.appendChild(l);
         }
-        initNames();
+        createTournament();
     </script>
 </body>
 </html>
