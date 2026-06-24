@@ -3,15 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>均衡トーナメント表</title>
+    <title>トーナメント作成ツール</title>
     <style>
         body { font-family: sans-serif; background: #f1f5f9; padding: 10px; margin: 0; }
         .main-container { display: flex; flex-direction: column; align-items: center; gap: 10px; }
         .panel { background: #fff; padding: 15px; border-radius: 12px; width: 95%; max-width: 500px; }
-        h2 { margin: 0 0 10px 0; font-size: 1.1rem; color: #333; }
+        h2 { margin: 0 0 10px 0; font-size: 1.2rem; color: #333; text-align: center; }
         
         select, textarea { width: 100%; font-size: 18px; padding: 10px; box-sizing: border-box; }
-        /* 入力エリアの高さを350pxに変更 */
         textarea { height: 350px; margin: 10px 0; resize: vertical; }
         
         .button-group { display: flex; gap: 10px; }
@@ -33,7 +32,11 @@
     <div class="main-container">
         <div class="panel">
             <h2>トーナメント作成ツール</h2>
-            <select id="select-count" onchange="initNames()"></select>
+            <select id="select-count" onchange="initNames()">
+                <script>
+                    for(let i=3; i<=16; i++) document.write(`<option value="${i}">${i}人</option>`);
+                </script>
+            </select>
             <textarea id="name-area" placeholder="選手1&#10;選手2&#10;選手3&#10;..."></textarea>
             <div class="button-group">
                 <button class="btn-apply" onclick="createTournament()">名前を反映</button>
@@ -50,12 +53,6 @@
         const svg = document.getElementById('tournament-svg');
         const nameArea = document.getElementById('name-area');
         const select = document.getElementById('select-count');
-
-        for (let i = 3; i <= 16; i++) {
-            let opt = document.createElement('option');
-            opt.value = i; opt.text = i + '人';
-            select.appendChild(opt);
-        }
 
         function initNames() {
             createTournament();
@@ -74,7 +71,8 @@
             if (n === 0) return;
             
             const mid = Math.ceil(n / 2);
-            const xStep = 900 / Math.pow(2, Math.ceil(Math.log2(n)));
+            const size = Math.pow(2, Math.ceil(Math.log2(n)));
+            const xStep = 900 / size;
 
             const baseY = 350;
             const rootA = drawBlock(names.slice(0, mid), 50, xStep, baseY);
@@ -94,12 +92,13 @@
                 const x = startX + i * xStep + xStep/2;
                 const name = group[i];
                 if (name) {
+                    // 1文字ずつ改行して配置（縦書き対策）
                     for (let j = 0; j < name.length; j++) {
                         const t = document.createElementNS("http://www.w3.org/2000/svg", "text");
                         t.setAttribute("x", x);
-                        t.setAttribute("y", baseY + 80 + (j * 40));
+                        t.setAttribute("y", baseY + 80 + (j * 35));
                         t.setAttribute("text-anchor", "middle");
-                        t.style.fontSize = "35px";
+                        t.style.fontSize = "30px";
                         t.textContent = name[j];
                         svg.appendChild(t);
                     }
@@ -140,7 +139,8 @@
             l.setAttribute("x2", x2); l.setAttribute("y2", y2);
             svg.appendChild(l);
         }
-        createTournament();
+        // 初回表示用
+        window.onload = initNames;
     </script>
 </body>
 </html>
