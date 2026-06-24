@@ -8,10 +8,13 @@
         body { font-family: sans-serif; background: #f1f5f9; padding: 10px; margin: 0; font-size: 18px; }
         .main-container { display: flex; flex-direction: column; align-items: center; gap: 10px; }
         .panel { background: #fff; padding: 15px; border-radius: 12px; width: 95%; max-width: 500px; }
-        h2 { margin: 0 0 10px 0; font-size: 1.4rem; color: #333; text-align: left; }
+        /* タイトルサイズを 1.1rem に調整 */
+        h2 { margin: 0 0 10px 0; font-size: 1.1rem; color: #333; text-align: left; }
         
         select, textarea { width: 100%; font-size: 18px; padding: 10px; box-sizing: border-box; }
-        textarea { height: 330px; margin: 10px 0; resize: vertical; }
+        textarea { height: 350px; margin: 10px 0; resize: vertical; }
+        
+        textarea::placeholder { color: #a0a0a0; }
         
         .button-group { display: flex; gap: 10px; }
         button { flex: 1; padding: 12px; cursor: pointer; font-size: 18px; border-radius: 8px; border: none; color: white; font-weight: bold; }
@@ -37,7 +40,7 @@
         <div class="panel">
             <h2>トーナメント作成ツール</h2>
             <select id="select-count" onchange="initNames()"></select>
-            <textarea id="name-area"></textarea>
+            <textarea id="name-area" placeholder="選手1&#10;選手2&#10;選手3&#10;..."></textarea>
             <div class="button-group">
                 <button class="btn-apply" onclick="createTournament()">名前を反映</button>
                 <button class="btn-print" onclick="printTournament()">印刷</button>
@@ -63,8 +66,7 @@
         }
 
         function initNames() {
-            const n = parseInt(select.value);
-            nameArea.value = Array.from({length: n}, (_, i) => "選手 " + (i + 1)).join('\n');
+            nameArea.value = "";
             createTournament();
         }
 
@@ -79,7 +81,13 @@
             const nodes = svg.querySelectorAll('line, text:not(#print-date)');
             nodes.forEach(n => n.remove());
 
-            const names = nameArea.value.split('\n').filter(s => s.trim() !== "");
+            let input = nameArea.value.trim();
+            if (input === "") {
+                const n = parseInt(select.value);
+                input = Array.from({length: n}, (_, i) => "選手 " + (i + 1)).join('\n');
+            }
+
+            const names = input.split('\n').filter(s => s.trim() !== "");
             const n = names.length;
             if (n === 0) return;
             
@@ -88,7 +96,6 @@
             const size = Math.pow(2, Math.ceil(Math.log2(n)));
             const xStep = totalWidth / size;
 
-            // 決勝線を表示するために位置を調整 (250 -> 300)
             const rootA = drawBlock(names.slice(0, mid), 50, xStep, 300);
             const rootB = drawBlock(names.slice(mid), 50 + mid * xStep, xStep, 300);
 
@@ -96,7 +103,6 @@
             line(rootA.x, rootA.y, rootA.x, finalY);
             line(rootB.x, rootB.y, rootB.x, finalY);
             line(rootA.x, finalY, rootB.x, finalY);
-            // 優勝者の縦線
             line((rootA.x + rootB.x) / 2, finalY, (rootA.x + rootB.x) / 2, finalY - LINE_H);
         }
 
@@ -150,7 +156,6 @@
             l.setAttribute("x2", x2); l.setAttribute("y2", y2);
             svg.appendChild(l);
         }
-        initNames();
     </script>
 </body>
 </html>
