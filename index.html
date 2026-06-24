@@ -8,7 +8,6 @@
         body { font-family: sans-serif; background: #f1f5f9; padding: 10px; margin: 0; }
         .main-container { display: flex; flex-direction: column; align-items: center; gap: 10px; }
         .panel { background: #fff; padding: 15px; border-radius: 12px; width: 95%; max-width: 500px; }
-        /* タイトルを左寄せに設定 */
         h2 { margin: 0 0 10px 0; font-size: 1.2rem; color: #333; text-align: left; }
         select, textarea { width: 100%; font-size: 18px; padding: 10px; box-sizing: border-box; }
         textarea { height: 350px; margin: 10px 0; resize: vertical; }
@@ -17,12 +16,23 @@
         .btn-apply { background-color: #2ecc71; }
         .btn-print { background-color: #3498db; }
         .svg-container { background: #fff; padding: 10px; border-radius: 12px; width: 95%; overflow: hidden; display: flex; justify-content: center; }
+        
         @media print {
             @page { size: A4 landscape; margin: 5mm; }
-            body { background: white; padding: 0; margin: 0; }
-            .panel { display: none; }
-            .svg-container { width: 100%; height: 100vh; display: flex; justify-content: center; align-items: center; }
-            svg { width: 100%; height: auto; max-height: 100%; }
+            body, html { background: white; margin: 0; padding: 0; height: 100%; }
+            .panel { display: none !important; } /* パネルを確実に消す */
+            .svg-container { 
+                display: block !important; 
+                width: 100% !important; 
+                height: 100% !important; 
+                margin: 0 !important; padding: 0 !important;
+            }
+            #tournament-svg { 
+                display: block !important; 
+                visibility: visible !important; 
+                width: 100% !important; 
+                height: 100% !important; 
+            }
         }
     </style>
 </head>
@@ -40,7 +50,7 @@
             </div>
         </div>
         <div class="svg-container">
-            <svg id="tournament-svg" viewBox="0 0 1000 600"></svg>
+            <svg id="tournament-svg" viewBox="0 0 1000 600" preserveAspectRatio="xMidYMid meet"></svg>
         </div>
     </div>
 
@@ -75,6 +85,15 @@
             line(rootB.x, rootB.y, rootB.x, finalY);
             line(rootA.x, finalY, rootB.x, finalY);
             line((rootA.x + rootB.x) / 2, finalY, (rootA.x + rootB.x) / 2, finalY - LINE_H);
+
+            const dateText = document.createElementNS("http://www.w3.org/2000/svg", "text");
+            dateText.setAttribute("x", "980");
+            dateText.setAttribute("y", "30");
+            dateText.setAttribute("text-anchor", "end");
+            dateText.style.fontSize = "20px";
+            dateText.style.fill = "#555";
+            dateText.textContent = "2026/6/24";
+            svg.appendChild(dateText);
         }
 
         function drawBlock(group, startX, xStep, baseY) {
@@ -85,7 +104,6 @@
                     const t = document.createElementNS("http://www.w3.org/2000/svg", "text");
                     t.setAttribute("x", x); t.setAttribute("y", yPos);
                     t.setAttribute("text-anchor", "middle"); t.style.fontSize = "30px";
-                    
                     if (name[j] === 'ー') {
                         t.textContent = 'ー'; 
                         t.setAttribute("transform", `rotate(90, ${x}, ${yPos - 10})`);
