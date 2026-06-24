@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>トーナメント作成ツール</title>
+    <link href="https://fonts.googleapis.com/css2?family=Zen+Kurenaido&display=swap" rel="stylesheet">
+    <title>剣道トーナメント作成ツール</title>
     <style>
         /* 基本スタイル */
         body { font-family: sans-serif; background: #f1f5f9; padding: 10px; margin: 0; }
@@ -18,15 +19,15 @@
         .btn-print { background-color: #3498db; }
         .svg-container { background: #fff; padding: 10px; border-radius: 12px; width: 95%; overflow: hidden; display: flex; justify-content: center; }
         
-        /* 印刷用日付：画面上は隠す */
+        /* 毛筆フォント設定：太さを強調 */
+        #tournament-svg { font-family: 'Zen Kurenaido', sans-serif; font-weight: 800; }
+        
+        /* 印刷用日付 */
         #print-date { display: none; }
 
         @media print {
             @page { size: A4 landscape; margin: 10mm; }
-            
-            /* bodyをrelativeにして日付を絶対配置の基準にする */
             body { background: white; margin: 0; padding: 0; position: relative; }
-            
             .panel { display: none !important; }
             
             #print-date {
@@ -35,16 +36,14 @@
                 top: 0;
                 right: 0;
                 font-size: 20px;
-                font-weight: bold;
+                font-family: 'Zen Kurenaido', sans-serif;
             }
 
             .svg-container { 
                 display: block !important; 
                 width: 100% !important; 
-                /* 印刷時の上部スペースを確保 */
-                margin-top: 100px !important;
+                margin-top: 100px !important; 
                 padding: 0 !important;
-                box-shadow: none !important;
                 background: none !important;
             }
             #tournament-svg { 
