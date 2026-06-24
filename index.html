@@ -8,7 +8,8 @@
         body { font-family: sans-serif; background: #f1f5f9; padding: 10px; margin: 0; }
         .main-container { display: flex; flex-direction: column; align-items: center; gap: 10px; }
         .panel { background: #fff; padding: 15px; border-radius: 12px; width: 95%; max-width: 500px; }
-        h2 { margin: 0 0 10px 0; font-size: 1.2rem; color: #333; text-align: center; }
+        /* タイトルを左寄せに設定 */
+        h2 { margin: 0 0 10px 0; font-size: 1.2rem; color: #333; text-align: left; }
         select, textarea { width: 100%; font-size: 18px; padding: 10px; box-sizing: border-box; }
         textarea { height: 350px; margin: 10px 0; resize: vertical; }
         .button-group { display: flex; gap: 10px; }
@@ -63,7 +64,6 @@
             if (n === 0) return;
 
             const mid = Math.ceil(n / 2);
-            // 左右対称を保つため、全体の人数nに基づき、左右の山に均等な幅を割り当てる
             const xStep = 900 / n; 
             const baseY = 350;
 
@@ -78,16 +78,20 @@
         }
 
         function drawBlock(group, startX, xStep, baseY) {
-            // 現在のグループ数に合わせて二分木を構築
             let nodes = group.map((name, i) => {
                 const x = startX + i * xStep + xStep/2;
-                // 名前描写
                 for (let j = 0; j < name.length; j++) {
                     const yPos = baseY + 80 + (j * 35);
                     const t = document.createElementNS("http://www.w3.org/2000/svg", "text");
                     t.setAttribute("x", x); t.setAttribute("y", yPos);
                     t.setAttribute("text-anchor", "middle"); t.style.fontSize = "30px";
-                    t.textContent = name[j];
+                    
+                    if (name[j] === 'ー') {
+                        t.textContent = 'ー'; 
+                        t.setAttribute("transform", `rotate(90, ${x}, ${yPos - 10})`);
+                    } else { 
+                        t.textContent = name[j]; 
+                    }
                     svg.appendChild(t);
                 }
                 line(x, baseY, x, baseY - LINE_H);
