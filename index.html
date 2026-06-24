@@ -15,26 +15,14 @@
         button { flex: 1; padding: 12px; cursor: pointer; font-size: 18px; border-radius: 8px; border: none; color: white; font-weight: bold; }
         .btn-apply { background-color: #2ecc71; }
         .btn-print { background-color: #3498db; }
-        .svg-container { background: #fff; padding: 10px; border-radius: 12px; width: 95%; overflow: hidden; display: flex; justify-content: center; }
-        
+        .svg-container { background: #fff; padding: 10px; border-radius: 12px; width: 95%; display: flex; justify-content: center; }
+        svg { width: 100%; height: auto; max-height: 85vh; }
+
         @media print {
-            /* 【変更箇所】余白を少し詰め、高さを制限して1ページに収める */
-            @page { size: A4 portrait; margin: 5mm; }
-            body { background: white; padding: 0; margin: 0; overflow: hidden; }
+            @page { size: A4 portrait; margin: 10mm; }
+            body { background: white; padding: 0; }
             .panel { display: none; }
-            .svg-container { 
-                width: 100%; 
-                height: 98vh; /* 少し高さを小さくして2ページ目を防ぐ */
-                display: flex; 
-                justify-content: center; 
-                align-items: center; 
-                overflow: hidden;
-            }
-            svg { 
-                width: 100%; 
-                height: auto; 
-                max-height: 100%; 
-            }
+            .svg-container { width: 100%; display: flex; justify-content: center; }
         }
     </style>
 </head>
@@ -65,20 +53,21 @@
         function initNames() { createTournament(); }
 
         function createTournament() {
-            svg.innerHTML = "";
             let input = nameArea.value.trim();
-            if (input === "") {
-                const n = parseInt(select.value);
-                input = Array.from({length: n}, (_, i) => "選手 " + (i + 1)).join('\n');
-            }
-            const names = input.split('\n').filter(s => s.trim() !== "");
+            const names = input === "" ? Array.from({length: parseInt(select.value)}, (_, i) => "選手 " + (i + 1)) : input.split('\n').filter(s => s.trim() !== "");
             const n = names.length;
             if (n === 0) return;
-            
-            const mid = Math.ceil(n / 2);
+
+            // 【改善点】人数に合わせてviewBoxの横幅を最適化
             const size = Math.pow(2, Math.ceil(Math.log2(n)));
-            const xStep = 900 / size;
+            const viewBoxWidth = (size > 8) ? 1000 : (size > 4 ? 700 : 500);
+            svg.setAttribute("viewBox", `0 0 ${viewBoxWidth} 600`);
+
+            svg.innerHTML = "";
+            const mid = Math.ceil(n / 2);
+            const xStep = (viewBoxWidth - 100) / size;
             const baseY = 350;
+
             const rootA = drawBlock(names.slice(0, mid), 50, xStep, baseY);
             const rootB = drawBlock(names.slice(mid), 50 + mid * xStep, xStep, baseY);
 
