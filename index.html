@@ -8,7 +8,6 @@
         body { font-family: sans-serif; background: #f1f5f9; padding: 10px; margin: 0; font-size: 18px; }
         .main-container { display: flex; flex-direction: column; align-items: center; gap: 10px; }
         .panel { background: #fff; padding: 15px; border-radius: 12px; width: 95%; max-width: 500px; }
-        /* タイトルサイズを 1.1rem に調整 */
         h2 { margin: 0 0 10px 0; font-size: 1.1rem; color: #333; text-align: left; }
         
         select, textarea { width: 100%; font-size: 18px; padding: 10px; box-sizing: border-box; }
@@ -30,8 +29,9 @@
             body { background: white; padding: 0; }
             .panel { display: none; }
             .svg-container { width: 100%; padding: 0; }
-            #print-date { display: block; font-size: 16px; }
-            @page { size: A4 landscape; margin: 10mm; }
+            /* 印刷時に日付が表示されるスタイル */
+            #print-date { display: block; font-size: 20px; }
+            @page { size: A4 landscape; margin: 15mm; } 
         }
     </style>
 </head>
@@ -47,8 +47,8 @@
             </div>
         </div>
         <div class="svg-container">
-            <svg id="tournament-svg" viewBox="0 0 1000 500">
-                <text id="print-date" x="980" y="20" text-anchor="end"></text>
+            <svg id="tournament-svg" viewBox="0 0 1000 600">
+                <text id="print-date" x="980" y="50" text-anchor="end"></text>
             </svg>
         </div>
     </div>
@@ -96,8 +96,10 @@
             const size = Math.pow(2, Math.ceil(Math.log2(n)));
             const xStep = totalWidth / size;
 
-            const rootA = drawBlock(names.slice(0, mid), 50, xStep, 300);
-            const rootB = drawBlock(names.slice(mid), 50 + mid * xStep, xStep, 300);
+            // 描画位置を下げて日付との距離を確保
+            const baseY = 350; 
+            const rootA = drawBlock(names.slice(0, mid), 50, xStep, baseY);
+            const rootB = drawBlock(names.slice(mid), 50 + mid * xStep, xStep, baseY);
 
             const finalY = Math.min(rootA.y, rootB.y) - LINE_H;
             line(rootA.x, rootA.y, rootA.x, finalY);
@@ -156,6 +158,7 @@
             l.setAttribute("x2", x2); l.setAttribute("y2", y2);
             svg.appendChild(l);
         }
+        initNames();
     </script>
 </body>
 </html>
