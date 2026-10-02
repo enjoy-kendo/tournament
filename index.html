@@ -23,26 +23,29 @@
 
         @media print {
             @page { size: A4 landscape; margin: 10mm; }
-            
-            /* bodyをrelativeにして日付を絶対配置の基準にする */
-            body { background: white; margin: 0; padding: 0; position: relative; }
-            
+            body { 
+                background: white; 
+                margin: 0; 
+                padding: 0; 
+                height: 100vh;
+                display: flex;
+                flex-direction: column;
+                justify-content: flex-end; /* 印刷時に下側に寄せる */
+            }
             .panel { display: none !important; }
-            
             #print-date {
                 display: block !important;
                 position: absolute;
                 top: 0;
                 right: 0;
-                font-size: 20px;
-                color: #555;         /* グレーに変更 */
-                font-weight: normal; /* 細字に変更 */
+                font-size: 18px;
+                color: #555;
+                font-weight: normal;
             }
-
             .svg-container { 
                 display: block !important; 
                 width: 100% !important; 
-                margin-top: 100px !important;
+                margin: 0 !important;
                 padding: 0 !important;
                 box-shadow: none !important;
                 background: none !important;
@@ -56,12 +59,16 @@
     </style>
 </head>
 <body>
-    <div id="print-date">2026/6/24</div>
+    <div id="print-date">2026/10/2</div>
     <div class="main-container">
         <div class="panel">
             <h2>トーナメント作成ツール</h2>
             <select id="select-count" onchange="initNames()">
-                <script>for(let i=3; i<=16; i++) document.write(`<option value="${i}">${i}人</option>`);</script>
+                <script>
+                    for(let i=3; i<=16; i++) {
+                        document.write(`<option value="${i}" ${i===14?'selected':''}>${i}人</option>`);
+                    }
+                </script>
             </select>
             <textarea id="name-area" placeholder="選手1&#10;選手2&#10;選手3..."></textarea>
             <div class="button-group">
@@ -70,12 +77,11 @@
             </div>
         </div>
         <div class="svg-container">
-            <svg id="tournament-svg" viewBox="0 0 1000 600" preserveAspectRatio="xMidYMid meet"></svg>
+            <svg id="tournament-svg" viewBox="0 0 1000 500" preserveAspectRatio="xMidYMid meet"></svg>
         </div>
     </div>
 
     <script>
-        const LINE_H = 60;
         const svg = document.getElementById('tournament-svg');
         const nameArea = document.getElementById('name-area');
         const select = document.getElementById('select-count');
@@ -93,67 +99,133 @@
             const n = names.length;
             if (n === 0) return;
 
-            const mid = Math.ceil(n / 2);
+            // 全体の高さをしっかりと持たせ、縦線をきれいに長く取る
+            let LINE_H = 75;
+            let svgHeight = 500;
+            let baseY = 380;
+
+            if (n <= 4) {
+                LINE_H = 110;
+                svgHeight = 450;
+                baseY = 320;
+            } else if (n <= 8) {
+                LINE_H = 85;
+                svgHeight = 480;
+                baseY = 350;
+            }
+
+            svg.setAttribute("viewBox", `0 0 1000 ${svgHeight}`);
+
             const xStep = 900 / n; 
-            const baseY = 350;
 
-            const rootA = drawBlock(names.slice(0, mid), 50, xStep, baseY);
-            const rootB = drawBlock(names.slice(mid), 50 + mid * xStep, xStep, baseY);
-
-            const finalY = Math.min(rootA.y, rootB.y) - LINE_H;
-            line(rootA.x, rootA.y, rootA.x, finalY);
-            line(rootB.x, rootB.y, rootB.x, finalY);
-            line(rootA.x, finalY, rootB.x, finalY);
-            line((rootA.x + rootB.x) / 2, finalY, (rootA.x + rootB.x) / 2, finalY - LINE_H);
-        }
-
-        function drawBlock(group, startX, xStep, baseY) {
-            let nodes = group.map((name, i) => {
-                const x = startX + i * xStep + xStep/2;
+            // 1. 各選手の文字描画
+            const leafNodes = names.map((name, i) => {
+                const x = 50 + i * xStep + xStep / 2;
                 for (let j = 0; j < name.length; j++) {
-                    const yPos = baseY + 80 + (j * 35);
+                    const yPos = baseY + 20 + (j * 18); 
                     const t = document.createElementNS("http://www.w3.org/2000/svg", "text");
-                    t.setAttribute("x", x); t.setAttribute("y", yPos);
-                    t.setAttribute("text-anchor", "middle"); t.style.fontSize = "30px";
+                    t.setAttribute("x", x); 
+                    t.setAttribute("y", yPos);
+                    t.setAttribute("text-anchor", "middle"); 
+                    t.style.fontSize = "16px";
                     if (name[j] === 'ー') {
                         t.textContent = 'ー'; 
-                        t.setAttribute("transform", `rotate(90, ${x}, ${yPos - 10})`);
+                        t.setAttribute("transform", `rotate(90, ${x}, ${yPos - 8})`);
                     } else { 
                         t.textContent = name[j]; 
                     }
                     svg.appendChild(t);
                 }
-                line(x, baseY, x, baseY - LINE_H);
-                return { x, y: baseY - LINE_H, active: true };
+                return { x, y: baseY, isLeaf: true };
             });
 
-            function build(curr) {
-                if (curr.length === 1) return curr[0];
-                let next = [];
-                for (let i = 0; i < curr.length; i += 2) {
-                    if (i + 1 < curr.length) {
-                        let n1 = curr[i], n2 = curr[i+1];
-                        let x = (n1.x + n2.x) / 2;
-                        let y = n1.y - LINE_H;
-                        line(n1.x, n1.y, n1.x, y); line(n2.x, n2.y, n2.x, y);
-                        line(n1.x, y, n2.x, y);
-                        next.push({x, y, active: true});
-                    } else {
-                        next.push(curr[i]);
-                    }
+            // 2. 人数ごとの個別分割ルール
+            function getSplitIndex(count) {
+                switch(count) {
+                    case 3:  return 2; 
+                    case 4:  return 2; 
+                    case 5:  return 2; 
+                    case 6:  return 4; 
+                    case 7:  return 4; 
+                    case 8:  return 4; 
+                    case 9:  return 4; 
+                    case 10: return 6; 
+                    case 11: return 6; 
+                    case 12: return 8; 
+                    case 13: return 8; 
+                    case 14: return 8; 
+                    case 15: return 8; 
+                    case 16: return 8; 
+                    default: return Math.floor(count / 2);
                 }
-                return build(next);
             }
-            return build(nodes);
+
+            function buildTree(list) {
+                if (list.length === 1) return list[0];
+                if (list.length === 2) {
+                    return { left: list[0], right: list[1] };
+                }
+
+                const count = list.length;
+                const mid = getSplitIndex(count);
+
+                return {
+                    left: buildTree(list.slice(0, mid)),
+                    right: buildTree(list.slice(mid))
+                };
+            }
+
+            const treeStructure = buildTree(leafNodes);
+
+            // 3. 各ノードの高さ（段数）を事前算出
+            function calculateHeights(node) {
+                if (node.isLeaf) {
+                    node.height = 0;
+                    return 0;
+                }
+                const hL = calculateHeights(node.left);
+                const hR = calculateHeights(node.right);
+                node.height = Math.max(hL, hR) + 1;
+                return node.height;
+            }
+            calculateHeights(treeStructure);
+
+            // 4. 線を描画
+            function drawTree(node) {
+                if (node.isLeaf) return node;
+
+                const leftRes = drawTree(node.left);
+                const rightRes = drawTree(node.right);
+
+                const joinY = baseY - (node.height * LINE_H);
+
+                line(leftRes.x, leftRes.y, leftRes.x, joinY);
+                line(rightRes.x, rightRes.y, rightRes.x, joinY);
+                line(leftRes.x, joinY, rightRes.x, joinY);
+
+                const parentX = (leftRes.x + rightRes.x) / 2;
+                return { x: parentX, y: joinY };
+            }
+
+            const root = drawTree(treeStructure);
+
+            // 優勝線
+            if (root) {
+                line(root.x, root.y, root.x, root.y - 25);
+            }
         }
 
         function line(x1, y1, x2, y2) {
             const l = document.createElementNS("http://www.w3.org/2000/svg", "line");
-            l.setAttribute("stroke", "black"); l.setAttribute("stroke-width", "2");
-            l.setAttribute("x1", x1); l.setAttribute("y1", y1);
-            l.setAttribute("x2", x2); l.setAttribute("y2", y2);
+            l.setAttribute("stroke", "black"); 
+            l.setAttribute("stroke-width", "2");
+            l.setAttribute("x1", x1); 
+            l.setAttribute("y1", y1);
+            l.setAttribute("x2", x2); 
+            l.setAttribute("y2", y2);
             svg.appendChild(l);
         }
+
         window.onload = initNames;
     </script>
 </body>
