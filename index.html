@@ -12,6 +12,13 @@
         h2 { margin: 0 0 10px 0; font-size: 1.2rem; color: #333; text-align: left; }
         select, textarea { width: 100%; font-size: 18px; padding: 10px; box-sizing: border-box; }
         textarea { height: 350px; margin: 10px 0; resize: vertical; }
+        
+        /* プレースホルダー（未入力時の見本文字）を綺麗なグレーにする設定 */
+        textarea::placeholder {
+            color: #94a3b8;
+            opacity: 1;
+        }
+
         .button-group { display: flex; gap: 10px; flex-wrap: wrap; }
         button { flex: 1; min-width: 130px; padding: 12px; cursor: pointer; font-size: 16px; border-radius: 8px; border: none; color: white; font-weight: bold; }
         .btn-apply { background-color: #2ecc71; }
@@ -79,6 +86,7 @@
                     }
                 </script>
             </select>
+            <!-- 最初から文字を入れず、プレースホルダー（見本）だけを表示させる -->
             <textarea id="name-area" placeholder="選手1
 選手2
 選手3..."></textarea>
@@ -108,7 +116,7 @@
 
         function initNames() {
             setTodayDate();
-            createTournament();
+            // 人数を変えたときも、入力欄が空なら自動入力はせずそのままにする
         }
 
         // 配列をランダムにシャッフルする関数（Fisher-Yatesアルゴリズム）
@@ -123,6 +131,7 @@
         // ランダムにシャッフルしてトーナメントを作成
         function createRandomTournament() {
             let input = nameArea.value.trim();
+            // 空の状態で押されたときだけ、選ばれている人数分の「選手1...」を補う
             if (input === "") {
                 const n = parseInt(select.value);
                 input = Array.from({length: n}, (_, i) => "選手 " + (i + 1)).join('\n');
@@ -140,6 +149,7 @@
         // 通常の反映用
         function createTournament() {
             let input = nameArea.value.trim();
+            // 空の状態で押されたときだけ、選ばれている人数分の「選手1...」を補う
             if (input === "") {
                 const n = parseInt(select.value);
                 input = Array.from({length: n}, (_, i) => "選手 " + (i + 1)).join('\n');
@@ -156,10 +166,9 @@
             svg.innerHTML = "";
             const n = names.length;
 
-            // 文字サイズ25pxに合わせたレイアウト調整（縦線と名前の間にしっかり余白を確保）
             let LINE_H = 75;
             let svgHeight = 560;
-            let baseY = 340; // 基準位置を調整して縦線と名前の間のスペースを拡大
+            let baseY = 340;
 
             if (n <= 4) {
                 LINE_H = 110;
@@ -175,7 +184,7 @@
 
             const xStep = 900 / n; 
 
-            // 1. 各選手の文字描画（文字サイズ25px、行間27pxに拡大）
+            // 1. 各選手の文字描画
             const leafNodes = names.map((name, i) => {
                 const x = 50 + i * xStep + xStep / 2;
                 for (let j = 0; j < name.length; j++) {
@@ -184,7 +193,7 @@
                     t.setAttribute("x", x); 
                     t.setAttribute("y", yPos);
                     t.setAttribute("text-anchor", "middle"); 
-                    t.style.fontSize = "25px"; // 25pxに変更
+                    t.style.fontSize = "25px";
                     if (name[j] === 'ー') {
                         t.textContent = 'ー'; 
                         t.setAttribute("transform", `rotate(90, ${x}, ${yPos - 9})`);
@@ -283,7 +292,10 @@
             svg.appendChild(l);
         }
 
-        window.onload = initNames;
+        window.onload = function() {
+            setTodayDate();
+            // 起動時は何も描画せず、入力欄を完全に空っぽにしておく
+        };
     </script>
 </body>
 </html>
