@@ -12,54 +12,63 @@
         h2 { margin: 0 0 10px 0; font-size: 1.2rem; color: #333; text-align: left; }
         select, textarea { width: 100%; font-size: 18px; padding: 10px; box-sizing: border-box; }
         textarea { height: 350px; margin: 10px 0; resize: vertical; }
-        .button-group { display: flex; gap: 10px; }
-        button { flex: 1; padding: 12px; cursor: pointer; font-size: 18px; border-radius: 8px; border: none; color: white; font-weight: bold; }
+        .button-group { display: flex; gap: 10px; flex-wrap: wrap; }
+        button { flex: 1; min-width: 130px; padding: 12px; cursor: pointer; font-size: 16px; border-radius: 8px; border: none; color: white; font-weight: bold; }
         .btn-apply { background-color: #2ecc71; }
+        .btn-random { background-color: #e67e22; }
         .btn-print { background-color: #3498db; }
         .svg-container { background: #fff; padding: 10px; border-radius: 12px; width: 95%; overflow: hidden; display: flex; justify-content: center; }
         
+        /* トーナメント内の選手名を明朝体にする */
+        #tournament-svg text {
+            font-family: "Yu Mincho", "YuMincho", "Hiragino Mincho ProN", "MS PMincho", serif;
+            font-weight: bold;
+        }
+
         /* 印刷用日付：画面上は隠す */
         #print-date { display: none; }
 
         @media print {
             @page { size: A4 landscape; margin: 10mm; }
             body { 
+                position: relative;
                 background: white; 
                 margin: 0; 
                 padding: 0; 
                 height: 100vh;
                 display: flex;
                 flex-direction: column;
-                justify-content: flex-end; /* 印刷時に下側に寄せる */
+                justify-content: flex-end;
             }
             .panel { display: none !important; }
             #print-date {
                 display: block !important;
                 position: absolute;
                 top: 0;
-                right: 0;
+                right: 5mm;
                 font-size: 18px;
-                color: #555;
+                color: #333;
                 font-weight: normal;
             }
             .svg-container { 
                 display: block !important; 
                 width: 100% !important; 
-                margin: 0 !important;
-                padding: 0 !important;
-                box-shadow: none !important;
-                background: none !important;
+                margin: 0 !important; 
+                padding: 0 !important; 
+                box-shadow: none !important; 
+                background: none !important; 
             }
             #tournament-svg { 
                 display: block !important; 
                 width: 100% !important; 
-                height: auto !important;
+                height: auto !important; 
             }
         }
     </style>
 </head>
 <body>
-    <div id="print-date">2026/10/2</div>
+    <div id="print-date"></div>
+
     <div class="main-container">
         <div class="panel">
             <h2>トーナメント作成ツール</h2>
@@ -70,9 +79,12 @@
                     }
                 </script>
             </select>
-            <textarea id="name-area" placeholder="選手1&#10;選手2&#10;選手3..."></textarea>
+            <textarea id="name-area" placeholder="選手1
+選手2
+選手3..."></textarea>
             <div class="button-group">
                 <button class="btn-apply" onclick="createTournament()">名前を反映</button>
+                <button class="btn-random" onclick="createRandomTournament()">ランダムに反映</button>
                 <button class="btn-print" onclick="window.print()">印刷</button>
             </div>
         </div>
@@ -86,51 +98,96 @@
         const nameArea = document.getElementById('name-area');
         const select = document.getElementById('select-count');
 
-        function initNames() { createTournament(); }
+        function setTodayDate() {
+            const today = new Date();
+            const y = today.getFullYear();
+            const m = today.getMonth() + 1;
+            const d = today.getDate();
+            document.getElementById('print-date').textContent = `${y}/${m}/${d}`;
+        }
 
-        function createTournament() {
-            svg.innerHTML = "";
+        function initNames() {
+            setTodayDate();
+            createTournament();
+        }
+
+        // 配列をランダムにシャッフルする関数（Fisher-Yatesアルゴリズム）
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        // ランダムにシャッフルしてトーナメントを作成
+        function createRandomTournament() {
             let input = nameArea.value.trim();
             if (input === "") {
                 const n = parseInt(select.value);
                 input = Array.from({length: n}, (_, i) => "選手 " + (i + 1)).join('\n');
+                nameArea.value = input;
+            }
+            let names = input.split('\n').filter(s => s.trim() !== "");
+            if (names.length === 0) return;
+
+            let shuffledNames = [...names];
+            shuffledNames = shuffleArray(shuffledNames);
+
+            drawTournamentSvg(shuffledNames);
+        }
+
+        // 通常の反映用
+        function createTournament() {
+            let input = nameArea.value.trim();
+            if (input === "") {
+                const n = parseInt(select.value);
+                input = Array.from({length: n}, (_, i) => "選手 " + (i + 1)).join('\n');
+                nameArea.value = input;
             }
             const names = input.split('\n').filter(s => s.trim() !== "");
-            const n = names.length;
-            if (n === 0) return;
+            if (names.length === 0) return;
 
-            // 全体の高さをしっかりと持たせ、縦線をきれいに長く取る
+            drawTournamentSvg(names);
+        }
+
+        // 実際にSVGを描画する共通処理
+        function drawTournamentSvg(names) {
+            svg.innerHTML = "";
+            const n = names.length;
+
+            // 文字サイズ25pxに合わせたレイアウト調整（縦線と名前の間にしっかり余白を確保）
             let LINE_H = 75;
-            let svgHeight = 500;
-            let baseY = 380;
+            let svgHeight = 560;
+            let baseY = 340; // 基準位置を調整して縦線と名前の間のスペースを拡大
 
             if (n <= 4) {
                 LINE_H = 110;
-                svgHeight = 450;
-                baseY = 320;
+                svgHeight = 500;
+                baseY = 270;
             } else if (n <= 8) {
                 LINE_H = 85;
-                svgHeight = 480;
-                baseY = 350;
+                svgHeight = 530;
+                baseY = 300;
             }
 
             svg.setAttribute("viewBox", `0 0 1000 ${svgHeight}`);
 
             const xStep = 900 / n; 
 
-            // 1. 各選手の文字描画
+            // 1. 各選手の文字描画（文字サイズ25px、行間27pxに拡大）
             const leafNodes = names.map((name, i) => {
                 const x = 50 + i * xStep + xStep / 2;
                 for (let j = 0; j < name.length; j++) {
-                    const yPos = baseY + 20 + (j * 18); 
+                    const yPos = baseY + 30 + (j * 27); 
                     const t = document.createElementNS("http://www.w3.org/2000/svg", "text");
                     t.setAttribute("x", x); 
                     t.setAttribute("y", yPos);
                     t.setAttribute("text-anchor", "middle"); 
-                    t.style.fontSize = "16px";
+                    t.style.fontSize = "25px"; // 25pxに変更
                     if (name[j] === 'ー') {
                         t.textContent = 'ー'; 
-                        t.setAttribute("transform", `rotate(90, ${x}, ${yPos - 8})`);
+                        t.setAttribute("transform", `rotate(90, ${x}, ${yPos - 9})`);
                     } else { 
                         t.textContent = name[j]; 
                     }
