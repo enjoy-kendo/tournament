@@ -96,7 +96,7 @@
             </div>
         </div>
         <div class="svg-container">
-            <svg id="tournament-svg" viewBox="0 0 1000 500" preserveAspectRatio="xMidYMid meet"></svg>
+            <svg id="tournament-svg" viewBox="0 0 1000 580" preserveAspectRatio="xMidYMid meet"></svg>
         </div>
     </div>
 
@@ -163,36 +163,36 @@
             const n = names.length;
 
             let LINE_H = 75;
-            let svgHeight = 560;
-            let baseY = 340;
+            let svgHeight = 600;
+            let baseY = 320; 
 
             if (n <= 4) {
                 LINE_H = 110;
-                svgHeight = 500;
-                baseY = 270;
+                svgHeight = 520;
+                baseY = 250;
             } else if (n <= 8) {
                 LINE_H = 85;
-                svgHeight = 530;
-                baseY = 300;
+                svgHeight = 560;
+                baseY = 280;
             }
 
             svg.setAttribute("viewBox", `0 0 1000 ${svgHeight}`);
 
             const xStep = 900 / n; 
 
-            // 1. 各選手の文字描画（文字サイズ30px、行間33pxに広げて余を持たせました）
+            // 1. 各選手の文字描画（文字サイズ38px、縦線との間に余裕を持たせるため開始位置を下に下げました）
             const leafNodes = names.map((name, i) => {
                 const x = 50 + i * xStep + xStep / 2;
                 for (let j = 0; j < name.length; j++) {
-                    const yPos = baseY + 30 + (j * 33); // 行の間隔を少し広げてゆとりを確保
+                    const yPos = baseY + 45 + (j * 44); // 縦線の下端と文字の間に十分な余白を確保
                     const t = document.createElementNS("http://www.w3.org/2000/svg", "text");
                     t.setAttribute("x", x); 
                     t.setAttribute("y", yPos);
                     t.setAttribute("text-anchor", "middle"); 
-                    t.style.fontSize = "40px"; // 文字サイズを40pxに拡大
+                    t.style.fontSize = "38px"; 
                     if (name[j] === 'ー') {
                         t.textContent = 'ー'; 
-                        t.setAttribute("transform", `rotate(90, ${x}, ${yPos - 11})`);
+                        t.setAttribute("transform", `rotate(90, ${x}, ${yPos - 14})`);
                     } else { 
                         t.textContent = name[j]; 
                     }
