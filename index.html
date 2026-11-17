@@ -86,7 +86,6 @@
                     }
                 </script>
             </select>
-            <!-- 最初から文字を入れず、プレースホルダー（見本）だけを表示させる -->
             <textarea id="name-area" placeholder="選手1
 選手2
 選手3..."></textarea>
@@ -116,7 +115,6 @@
 
         function initNames() {
             setTodayDate();
-            // 人数を変えたときも、入力欄が空なら自動入力はせずそのままにする
         }
 
         // 配列をランダムにシャッフルする関数（Fisher-Yatesアルゴリズム）
@@ -131,7 +129,6 @@
         // ランダムにシャッフルしてトーナメントを作成
         function createRandomTournament() {
             let input = nameArea.value.trim();
-            // 空の状態で押されたときだけ、選ばれている人数分の「選手1...」を補う
             if (input === "") {
                 const n = parseInt(select.value);
                 input = Array.from({length: n}, (_, i) => "選手 " + (i + 1)).join('\n');
@@ -149,7 +146,6 @@
         // 通常の反映用
         function createTournament() {
             let input = nameArea.value.trim();
-            // 空の状態で押されたときだけ、選ばれている人数分の「選手1...」を補う
             if (input === "") {
                 const n = parseInt(select.value);
                 input = Array.from({length: n}, (_, i) => "選手 " + (i + 1)).join('\n');
@@ -184,19 +180,19 @@
 
             const xStep = 900 / n; 
 
-            // 1. 各選手の文字描画
+            // 1. 各選手の文字描画（文字サイズ30px、行間33pxに広げて余を持たせました）
             const leafNodes = names.map((name, i) => {
                 const x = 50 + i * xStep + xStep / 2;
                 for (let j = 0; j < name.length; j++) {
-                    const yPos = baseY + 30 + (j * 27); 
+                    const yPos = baseY + 30 + (j * 33); // 行の間隔を少し広げてゆとりを確保
                     const t = document.createElementNS("http://www.w3.org/2000/svg", "text");
                     t.setAttribute("x", x); 
                     t.setAttribute("y", yPos);
                     t.setAttribute("text-anchor", "middle"); 
-                    t.style.fontSize = "30px";
+                    t.style.fontSize = "30px"; // 文字サイズを30pxに拡大
                     if (name[j] === 'ー') {
                         t.textContent = 'ー'; 
-                        t.setAttribute("transform", `rotate(90, ${x}, ${yPos - 9})`);
+                        t.setAttribute("transform", `rotate(90, ${x}, ${yPos - 11})`);
                     } else { 
                         t.textContent = name[j]; 
                     }
@@ -294,7 +290,6 @@
 
         window.onload = function() {
             setTodayDate();
-            // 起動時は何も描画せず、入力欄を完全に空っぽにしておく
         };
     </script>
 </body>
